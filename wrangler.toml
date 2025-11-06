@@ -3,8 +3,7 @@ compatibility_date = "2025-10-21"
 pages_build_output_dir = "./dist"
 compatibility_flags = ["nodejs_compat"]
 
-[[d1_databases]]
-binding = "DB"
-database_name = "助成金-db"
-database_id = "12d97b60-7344-4d67-b53a-7f61b4f19ba6"
-migrations_dir = "migrations"
+# D1 database binding will be configured via Cloudflare Dashboard
+# Database: 助成金-db
+# Database ID: 12d97b60-7344-4d67-b53a-7f61b4f19ba6
+# Variable name: DB
