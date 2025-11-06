@@ -5,6 +5,26 @@ import { MatchingService } from '../services/matching.service';
 
 const test = new Hono<{ Bindings: Env }>();
 
+// テスト用：データベースのテーブル一覧確認
+test.get('/db-tables', async (c) => {
+  try {
+    const tables = await executeQuery(
+      c.env.DB,
+      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+    );
+    
+    return c.json({
+      success: true,
+      tables: tables.map((t: any) => t.name)
+    });
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : String(error) 
+    }, 500);
+  }
+});
+
 // テスト用：データベースの状態確認
 test.get('/db-status', async (c) => {
   try {
