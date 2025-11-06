@@ -76,13 +76,25 @@ answers.post('/:sessionId/answers', async (c) => {
       };
     }
     
+    // answer_labelの生成
+    let answerLabel = '';
+    if (answerData.type === 'text') {
+      answerLabel = String(answerData.value || '');
+    } else if (Array.isArray(processedAnswer.value)) {
+      answerLabel = processedAnswer.value.join(', ');
+    } else if (typeof processedAnswer.value === 'object' && processedAnswer.value?.label) {
+      answerLabel = processedAnswer.value.label;
+    } else {
+      answerLabel = String(processedAnswer.value || '');
+    }
+    
     // 回答を保存
     await insert(c.env.DB, 'conversation_history', {
       session_id: sessionId,
       question_id,
       question_text: question.text,
       answer_value: toJsonString(processedAnswer),
-      answer_label: answerData.type === 'text' ? answerData.value : (processedAnswer.value?.label || processedAnswer.value)
+      answer_label: answerLabel
     });
     
     // セッション更新
