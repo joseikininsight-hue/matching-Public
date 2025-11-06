@@ -2,3 +2,9 @@ name = "webapp"
 compatibility_date = "2025-10-21"
 pages_build_output_dir = "./dist"
 compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "助成金-db"
+database_id = "12d97b60-7344-4d67-b53a-7f61b4f19ba6"
+migrations_dir = "migrations"
