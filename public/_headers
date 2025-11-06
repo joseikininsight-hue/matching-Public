@@ -1,0 +1,6 @@
+/*
+  X-Frame-Options: ALLOW-FROM https://joseikin-insight.com
+  Content-Security-Policy: frame-ancestors 'self' https://joseikin-insight.com https://*.joseikin-insight.com
+  Access-Control-Allow-Origin: https://joseikin-insight.com
+  Access-Control-Allow-Methods: GET, POST, OPTIONS
+  Access-Control-Allow-Headers: Content-Type
