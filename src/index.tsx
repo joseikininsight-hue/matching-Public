@@ -11,6 +11,7 @@ import recommendations from './routes/recommendations';
 import admin from './routes/admin';
 import test from './routes/test';
 import wordpress from './routes/wordpress';
+import grants from './routes/grants';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -568,6 +569,7 @@ app.route('/api/recommendations', recommendations);
 app.route('/api/admin', admin);
 app.route('/api/test', test); // テスト用エンドポイント
 app.route('/api/wordpress', wordpress); // WordPress連携
+app.route('/api/grants', grants); // 補助金API
 
 // ヘルスチェック
 app.get('/api/health', (c) => {
