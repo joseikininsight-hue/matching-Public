@@ -134,42 +134,20 @@ wordpress.get('/sync', async (c) => {
         const contentHtml = post.content?.rendered || '';
         
         // D1データベースに挿入または更新
-        // ACFフィールドが空の場合はデフォルト値を使用
+        // 最小限のカラムのみ使用
         await db.prepare(`
           INSERT OR REPLACE INTO grants (
             wordpress_id,
             title,
             content,
             excerpt,
-            organization,
-            max_amount_display,
-            max_amount_numeric,
-            deadline_display,
-            deadline_date,
-            official_url,
-            prefecture_name,
-            target_prefecture_code,
-            grant_target,
-            application_status,
-            wp_sync_status,
             status
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?)
         `).bind(
           post.id,                                    // wordpress_id
           title,                                      // title
           contentHtml,                                // content (HTML)
           excerpt,                                    // excerpt (plain text)
-          acf.organization || '未設定',                // organization
-          acf.max_amount || '要確認',                  // max_amount_display
-          acf.max_amount_numeric || 0,                // max_amount_numeric
-          acf.deadline || '随時',                      // deadline_display
-          acf.deadline_date || null,                  // deadline_date
-          acf.official_url || post.link || '',        // official_url
-          prefectureName,                             // prefecture_name
-          prefectureSlug,                             // target_prefecture_code
-          acf.grant_target || '',                     // grant_target
-          acf.application_status || 'open',           // application_status
-          'synced',                                   // wp_sync_status
           post.status || 'publish'                    // status
         ).run();
         
@@ -288,41 +266,20 @@ wordpress.post('/webhook', async (c) => {
     const excerpt = post.excerpt?.rendered?.replace(/<[^>]*>/g, '') || '';
 
     // D1データベースに同期
+    // 最小限のカラムのみ使用
     await db.prepare(`
       INSERT OR REPLACE INTO grants (
         wordpress_id,
         title,
         content,
         excerpt,
-        organization,
-        max_amount_display,
-        max_amount_numeric,
-        deadline_display,
-        deadline_date,
-        official_url,
-        prefecture_name,
-        target_prefecture_code,
-        grant_target,
-        application_status,
-        wp_sync_status,
         status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?)
     `).bind(
       post.id,
       title,
       contentHtml,
       excerpt,
-      acf.organization || '未設定',
-      acf.max_amount || '要確認',
-      acf.max_amount_numeric || 0,
-      acf.deadline || '随時',
-      acf.deadline_date || null,
-      acf.official_url || post.link || '',
-      prefectureName,
-      prefectureSlug,
-      acf.grant_target || '',
-      acf.application_status || 'open',
-      'synced',
       post.status || 'publish'
     ).run();
 
