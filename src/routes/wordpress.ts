@@ -151,10 +151,9 @@ wordpress.get('/sync', async (c) => {
             target_prefecture_code,
             grant_target,
             application_status,
-            wp_post_id,
             wp_sync_status,
             status
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           post.id,                                    // wordpress_id
           title,                                      // title
@@ -170,7 +169,6 @@ wordpress.get('/sync', async (c) => {
           prefectureSlug,                             // target_prefecture_code
           acf.grant_target || '',                     // grant_target
           acf.application_status || 'open',           // application_status
-          post.id,                                    // wp_post_id
           'synced',                                   // wp_sync_status
           post.status || 'publish'                    // status
         ).run();
@@ -306,10 +304,9 @@ wordpress.post('/webhook', async (c) => {
         target_prefecture_code,
         grant_target,
         application_status,
-        wp_post_id,
         wp_sync_status,
         status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       post.id,
       title,
@@ -325,7 +322,6 @@ wordpress.post('/webhook', async (c) => {
       prefectureSlug,
       acf.grant_target || '',
       acf.application_status || 'open',
-      post.id,
       'synced',
       post.status || 'publish'
     ).run();
