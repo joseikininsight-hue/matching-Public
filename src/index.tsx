@@ -10,6 +10,7 @@ import answers from './routes/answers';
 import recommendations from './routes/recommendations';
 import admin from './routes/admin';
 import test from './routes/test';
+import wordpress from './routes/wordpress';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -566,6 +567,7 @@ app.route('/api/sessions', answers); // /api/sessions/:sessionId/answers
 app.route('/api/recommendations', recommendations);
 app.route('/api/admin', admin);
 app.route('/api/test', test); // テスト用エンドポイント
+app.route('/api/wordpress', wordpress); // WordPress連携
 
 // ヘルスチェック
 app.get('/api/health', (c) => {

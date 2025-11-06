@@ -1,0 +1,406 @@
+/**
+ * Grant Amount Fixer - Styles
+ * 助成金額修正ツールのスタイル
+ * 
+ * @package Grant_Insight_Perfect
+ * @version 1.0.0
+ */
+
+/* ==========================================================================
+   Main Container
+   ========================================================================== */
+
+.gi-amount-fixer {
+    max-width: 1200px;
+    margin: 20px 0;
+}
+
+.gi-amount-fixer h1 {
+    margin-bottom: 20px;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Section Styles
+   ========================================================================== */
+
+.gi-fixer-section {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 30px;
+    margin: 20px 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.gi-fixer-section h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 20px;
+    font-weight: 600;
+    color: #23282d;
+    border-bottom: 2px solid #0073aa;
+    padding-bottom: 10px;
+}
+
+.gi-fixer-section h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #23282d;
+}
+
+.gi-fixer-section h4 {
+    font-size: 16px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: #555;
+}
+
+/* ==========================================================================
+   Notice Boxes
+   ========================================================================== */
+
+.gi-fixer-notice {
+    background: #e7f3ff;
+    border-left: 4px solid #0073aa;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+
+.gi-fixer-notice h2 {
+    margin-top: 0;
+    font-size: 18px;
+    color: #0073aa;
+}
+
+.gi-fixer-notice p {
+    margin: 10px 0;
+    line-height: 1.6;
+}
+
+.gi-info-box {
+    background: #e8f5e9;
+    border-left: 4px solid #4caf50;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+}
+
+.gi-warning-box {
+    background: #fff3e0;
+    border-left: 4px solid #ff9800;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+}
+
+.gi-warning-box p {
+    margin: 8px 0;
+}
+
+.gi-success-box {
+    background: #e8f5e9;
+    border-left: 4px solid #4caf50;
+    padding: 30px;
+    text-align: center;
+    border-radius: 8px;
+}
+
+.gi-success-box h2 {
+    color: #4caf50;
+    font-size: 24px;
+    margin-bottom: 15px;
+    border: none;
+    padding: 0;
+}
+
+/* ==========================================================================
+   Progress Bar
+   ========================================================================== */
+
+#gi-scan-progress,
+#gi-fix-progress {
+    margin: 20px 0;
+}
+
+.gi-progress-bar {
+    width: 100%;
+    height: 30px;
+    background: #f0f0f0;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.gi-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0073aa, #00a0d2);
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+}
+
+.gi-progress-text {
+    text-align: center;
+    margin-top: 10px;
+    font-weight: 600;
+    color: #555;
+}
+
+/* ==========================================================================
+   Scan Results
+   ========================================================================== */
+
+.gi-scan-summary {
+    background: #f7f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.gi-scan-summary h3 {
+    margin-top: 0;
+    color: #0073aa;
+}
+
+.gi-scan-summary p {
+    margin: 8px 0;
+    font-size: 15px;
+}
+
+.gi-highlight {
+    color: #d63638;
+    font-size: 18px;
+}
+
+/* ==========================================================================
+   Post List & Table
+   ========================================================================== */
+
+.gi-post-list {
+    margin-top: 20px;
+}
+
+.gi-select-all-wrapper {
+    background: #f7f9fa;
+    padding: 12px 15px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.gi-select-all-wrapper label {
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+}
+
+.gi-post-list table {
+    margin-top: 15px;
+}
+
+.gi-post-list td,
+.gi-post-list th {
+    padding: 12px;
+}
+
+.gi-post-list .check-column {
+    width: 40px;
+    text-align: center;
+}
+
+.gi-post-checkbox,
+#gi-select-all,
+#gi-select-all-header {
+    cursor: pointer;
+    transform: scale(1.1);
+}
+
+.gi-issue {
+    padding: 5px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.gi-issue:last-child {
+    border-bottom: none;
+}
+
+.gi-old-value {
+    color: #d63638;
+    font-weight: 600;
+    text-decoration: line-through;
+}
+
+.gi-new-value {
+    color: #00a32a;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Preview Table
+   ========================================================================== */
+
+.gi-preview-table td,
+.gi-preview-table th {
+    padding: 12px;
+    vertical-align: middle;
+}
+
+.gi-preview-table .gi-arrow {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #0073aa;
+}
+
+/* ==========================================================================
+   Action Buttons
+   ========================================================================== */
+
+.gi-action-buttons {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.gi-action-buttons button {
+    min-width: 200px;
+    height: 42px;
+    font-size: 15px;
+}
+
+.button-large .dashicons {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+/* ==========================================================================
+   Fix Results
+   ========================================================================== */
+
+.gi-fix-summary {
+    background: #f7f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.gi-fix-summary h3 {
+    margin-top: 0;
+    color: #0073aa;
+}
+
+.gi-fix-summary .gi-success {
+    color: #00a32a;
+    font-size: 18px;
+}
+
+.gi-fix-summary .gi-error {
+    color: #d63638;
+    font-size: 18px;
+}
+
+.gi-results-detail ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.gi-results-detail li {
+    padding: 10px 15px;
+    margin: 5px 0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.gi-success-item {
+    background: #e8f5e9;
+    border-left: 4px solid #4caf50;
+}
+
+.gi-error-item {
+    background: #ffebee;
+    border-left: 4px solid #d63638;
+}
+
+.gi-results-detail .dashicons {
+    margin-right: 10px;
+    font-size: 20px;
+}
+
+.gi-success-item .dashicons {
+    color: #4caf50;
+}
+
+.gi-error-item .dashicons {
+    color: #d63638;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media screen and (max-width: 782px) {
+    .gi-fixer-section {
+        padding: 20px;
+    }
+    
+    .gi-amount-fixer h1 {
+        font-size: 24px;
+    }
+    
+    .gi-fixer-section h2 {
+        font-size: 18px;
+    }
+    
+    .gi-post-list table {
+        font-size: 13px;
+    }
+    
+    .gi-post-list td,
+    .gi-post-list th {
+        padding: 8px;
+    }
+    
+    .gi-action-buttons button {
+        min-width: 100%;
+    }
+}
+
+/* ==========================================================================
+   Animation
+   ========================================================================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.gi-fixer-section {
+    animation: fadeIn 0.3s ease;
+}
+
+/* ==========================================================================
+   WordPress Admin Overrides
+   ========================================================================== */
+
+.gi-amount-fixer .notice {
+    margin: 15px 0;
+}
+
+.gi-amount-fixer .notice p {
+    margin: 0.5em 0;
+}
