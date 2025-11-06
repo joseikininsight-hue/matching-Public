@@ -186,22 +186,27 @@ wordpress.get('/sync', async (c) => {
       }
     }
 
-    // 同期ログをwp_sync_logテーブルに記録
-    await db.prepare(`
-      INSERT INTO wp_sync_log (
-        sync_type,
-        synced_count,
-        error_count,
-        status,
-        started_at,
-        completed_at
-      ) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
-    `).bind(
-      'full',
-      syncedCount,
-      errorCount,
-      errorCount === 0 ? 'success' : 'partial'
-    ).run();
+    // 同期ログをwp_sync_logテーブルに記録（テーブルが存在する場合のみ）
+    try {
+      await db.prepare(`
+        INSERT INTO wp_sync_log (
+          sync_type,
+          synced_count,
+          error_count,
+          status,
+          started_at,
+          completed_at
+        ) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).bind(
+        'full',
+        syncedCount,
+        errorCount,
+        errorCount === 0 ? 'success' : 'partial'
+      ).run();
+    } catch (logError) {
+      console.warn('Could not write to wp_sync_log table:', logError);
+      // テーブルが存在しない場合は無視
+    }
 
     return c.json({
       success: true,
@@ -325,17 +330,22 @@ wordpress.post('/webhook', async (c) => {
       post.status || 'publish',
     ).run();
 
-    // Webhook同期ログを記録
-    await db.prepare(`
-      INSERT INTO wp_sync_log (
-        sync_type,
-        synced_count,
-        error_count,
-        status,
-        started_at,
-        completed_at
-      ) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
-    `).bind('webhook', 1, 0, 'success').run();
+    // Webhook同期ログを記録（テーブルが存在する場合のみ）
+    try {
+      await db.prepare(`
+        INSERT INTO wp_sync_log (
+          sync_type,
+          synced_count,
+          error_count,
+          status,
+          started_at,
+          completed_at
+        ) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).bind('webhook', 1, 0, 'success').run();
+    } catch (logError) {
+      console.warn('Could not write to wp_sync_log table:', logError);
+      // テーブルが存在しない場合は無視
+    }
 
     return c.json({
       success: true,
