@@ -96,6 +96,7 @@ wordpress.get('/sync', async (c) => {
     // WordPressデータをD1データベースに同期
     let syncedCount = 0;
     let errorCount = 0;
+    const errors: string[] = [];
 
     for (const post of allPosts) {
       try {
@@ -178,7 +179,10 @@ wordpress.get('/sync', async (c) => {
 
         syncedCount++;
       } catch (error) {
-        console.error(`Error syncing post ${post.id}:`, error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Error syncing post ${post.id}:`, errorMsg);
+        console.error('Error details:', error);
+        errors.push(`Post ${post.id}: ${errorMsg}`);
         errorCount++;
       }
     }
@@ -215,6 +219,7 @@ wordpress.get('/sync', async (c) => {
       start_page: page,
       next_page: hasMore ? currentPage : null,
       has_more: hasMore,
+      errors: errors.slice(0, 10), // 最初の10個のエラーメッセージ
     });
   } catch (error) {
     console.error('WordPress sync error:', error);
