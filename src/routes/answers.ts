@@ -81,10 +81,8 @@ answers.post('/:sessionId/answers', async (c) => {
       session_id: sessionId,
       question_id,
       question_text: question.text,
-      answer_type: answerData.type,
       answer_value: toJsonString(processedAnswer),
-      answer_text: answerData.type === 'text' ? answerData.value : null,
-      ai_interpretation: aiInterpretation ? toJsonString(aiInterpretation) : null
+      answer_label: answerData.type === 'text' ? answerData.value : (processedAnswer.value?.label || processedAnswer.value)
     });
     
     // セッション更新
