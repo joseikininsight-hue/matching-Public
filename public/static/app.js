@@ -60,21 +60,21 @@ async function initializeApp() {
   }
 }
 
-// ローディング表示（AI思考中アニメーション付き）
+// ローディング表示
 function showLoading(container, message = '読み込み中...') {
   const thinkingMessages = [
-    '🤔 あなたの条件を分析中...',
-    '💡 最適な補助金を検索中...',
-    '🔍 データベースを探索中...',
-    '✨ AIがマッチングを計算中...'
+    'Analyzing your conditions...',
+    'Searching for grants...',
+    'Exploring database...',
+    'Calculating matches...'
   ];
   
   let messageIndex = 0;
-  const messageElement = `<p id="loading-message" class="text-lg font-bold">${thinkingMessages[0]}</p>`;
+  const messageElement = `<p id="loading-message" class="text-base font-bold uppercase tracking-wide" style="color: #000;">${thinkingMessages[0]}</p>`;
   
   container.innerHTML = `
     <div class="flex flex-col items-center justify-center min-h-[300px]">
-      <div class="spinner mb-4"></div>
+      <div class="spinner mb-6"></div>
       ${messageElement}
       <div class="mt-4 flex gap-2">
         <div class="loading-dot" style="animation-delay: 0s"></div>
@@ -103,22 +103,25 @@ function showLoading(container, message = '読み込み中...') {
 // エラー表示
 function showError(container, message) {
   container.innerHTML = `
-    <div class="bg-red-50 border-4 border-red-500 p-6 text-center">
-      <p class="text-xl font-bold text-red-700 mb-4">⚠️ ${message}</p>
+    <div class="error-box p-8 text-center">
+      <div class="icon-box w-16 h-16 mx-auto mb-4 text-3xl">
+        ⚠
+      </div>
+      <p class="text-lg font-bold mb-6" style="color: #000;">${message}</p>
       <button onclick="location.reload()" class="btn-primary">
-        再読み込み
+        Reload
       </button>
     </div>
   `;
 }
 
-// プログレスバー表示（コンパクト版）
+// プログレスバー表示
 function renderProgressBar(progress) {
   return `
-    <div class="mb-4">
-      <div class="flex justify-between items-center mb-1">
-        <span class="text-sm font-bold">回答進捗</span>
-        <span class="text-sm text-mono">${Math.round(progress * 100)}%</span>
+    <div class="mb-6">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-xs font-bold uppercase tracking-wider" style="color: #525252;">Progress</span>
+        <span class="text-xs font-bold" style="color: #000;">${Math.round(progress * 100)}%</span>
       </div>
       <div class="progress-bar">
         <div class="progress-bar-fill" style="width: ${progress * 100}%"></div>
@@ -137,7 +140,7 @@ function renderQuestion(container) {
   if (question.type === 'single_select') {
     // ドロップダウン形式に変更
     optionsHtml = `
-      <select id="single-select-dropdown" class="w-full p-4 text-lg border-4 border-black font-bold bg-white">
+      <select id="single-select-dropdown" class="w-full p-3 text-base font-semibold bg-white">
         <option value="">選択してください...</option>
         ${question.options.map(opt => `
           <option value="${opt.value}">${opt.icon || '•'} ${opt.label}</option>
@@ -145,21 +148,21 @@ function renderQuestion(container) {
       </select>
       <button 
         onclick="submitSingleSelectDropdown()"
-        class="btn-primary w-full mt-4"
+        class="btn-primary w-full mt-4 py-3"
       >
         次へ進む →
       </button>
     `;
   } else if (question.type === 'multi_select') {
     optionsHtml = `
-      <div id="multi-select-options" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+      <div id="multi-select-options" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
         ${question.options.map(opt => `
           <button 
-            class="question-option text-left flex items-center gap-3"
+            class="question-option text-left flex items-center gap-2 text-sm"
             data-value="${opt.value}"
             onclick="toggleMultiSelect(this, '${opt.value}')"
           >
-            <span class="text-2xl" data-icon="${opt.icon || '•'}">•</span>
+            <span class="text-lg" data-icon="${opt.icon || '•'}">•</span>
             <span class="flex-1 font-medium">${opt.label}</span>
           </button>
         `).join('')}
@@ -169,26 +172,26 @@ function renderQuestion(container) {
           type="text" 
           id="custom-text-input"
           placeholder="${question.textInputPlaceholder || 'その他を入力'}"
-          class="mb-4"
+          class="mb-3"
         />
       ` : ''}
       <button 
         onclick="submitMultiSelect()"
-        class="btn-primary w-full"
+        class="btn-primary w-full py-3"
       >
         次へ進む →
       </button>
     `;
   } else if (question.type === 'text_input' || question.type === 'long_text') {
     const inputField = question.type === 'long_text' 
-      ? `<textarea id="text-input" rows="5" placeholder="${question.placeholder || ''}"></textarea>`
+      ? `<textarea id="text-input" rows="4" placeholder="${question.placeholder || ''}"></textarea>`
       : `<input type="text" id="text-input" placeholder="${question.placeholder || ''}" />`;
     
     optionsHtml = `
       ${inputField}
       <button 
         onclick="submitTextInput()"
-        class="btn-primary w-full mt-4"
+        class="btn-primary w-full mt-3 py-3"
       >
         次へ進む →
       </button>
@@ -196,31 +199,38 @@ function renderQuestion(container) {
   }
   
   container.innerHTML = `
-    ${renderProgressBar(progress)}
-    
-    <div class="question-card fade-in">
-      <div class="flex items-start gap-3 mb-4">
-        <span class="text-3xl">${question.icon || '💡'}</span>
-        <div class="flex-1">
-          <h2 class="text-xl font-bold mb-1">${question.text}</h2>
-          ${question.required ? `
-            <span class="inline-block bg-accent-yellow text-black px-2 py-0.5 text-xs font-bold border-2 border-black">
-              必須
-            </span>
-          ` : ''}
+    <div style="height: 100%; display: flex; flex-direction: column;">
+      ${renderProgressBar(progress)}
+      
+      <div class="question-card fade-in" style="flex: 1; overflow-y: auto;">
+        <div class="flex items-start gap-3 mb-4">
+          <div class="icon-box w-10 h-10 flex items-center justify-center text-xl flex-shrink-0">
+            ${question.icon || '💡'}
+          </div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-base font-bold mb-2" style="color: #000;">${question.text}</h2>
+            ${question.required ? `
+              <span class="badge badge-warning">
+                Required
+              </span>
+            ` : ''}
+          </div>
         </div>
+        
+        <div style="flex: 1; overflow-y: auto;">
+          ${optionsHtml}
+        </div>
+        
+        ${question.skippable ? `
+          <button 
+            onclick="handleSkip()"
+            class="mt-3 text-xs uppercase tracking-wide font-bold underline"
+            style="color: #525252;"
+          >
+            Skip →
+          </button>
+        ` : ''}
       </div>
-      
-      ${optionsHtml}
-      
-      ${question.skippable ? `
-        <button 
-          onclick="handleSkip()"
-          class="mt-3 text-sm text-gray-500 underline hover:text-black transition-colors"
-        >
-          この質問をスキップ →
-        </button>
-      ` : ''}
     </div>
   `;
 }
@@ -393,36 +403,54 @@ function renderResults(container) {
   }
   
   container.innerHTML = `
-    <div class="bg-accent-yellow border-4 border-black p-6 mb-8 brutalist-shadow fade-in">
-      <h2 class="text-3xl font-bold mb-2">
-        🎉 あなたにおすすめの補助金が見つかりました！
-      </h2>
-      <p class="text-lg">
-        ${recommendations.length}件の補助金をマッチング度順に表示しています
-      </p>
+    <div class="success-box p-4 mb-4 fade-in">
+      <div class="flex items-center gap-3">
+        <div class="icon-box w-12 h-12 flex items-center justify-center text-2xl flex-shrink-0">
+          ✓
+        </div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-lg font-bold mb-1" style="color: #000;">
+            マッチング完了
+          </h2>
+          <p class="text-xs" style="color: #525252;">
+            ${recommendations.length}件の補助金が見つかりました
+          </p>
+        </div>
+      </div>
     </div>
     
     ${renderProfileSummary(profileSummary)}
     
-    <div id="grants-list" class="space-y-6">
+    <div id="grants-list" class="grants-grid">
       ${recommendations.map((rec, index) => renderGrantCard(rec, index)).join('')}
     </div>
     
-    <div class="mt-8 space-y-4">
+    <div class="mt-8">
       <button 
         onclick="location.reload()"
-        class="w-full border-2 border-black p-4 font-bold hover:bg-gray-100 transition-colors"
+        class="w-full btn-secondary py-4"
       >
-        🔄 最初からやり直す
+        Restart
       </button>
     </div>
     
-    <div class="mt-8 p-6 bg-gray-50 border-2 border-gray-300">
-      <h3 class="font-bold mb-2">📌 ご注意</h3>
-      <ul class="text-sm text-gray-700 space-y-1">
-        <li>• 補助金の詳細は必ず公式サイトでご確認ください</li>
-        <li>• 申請条件や期限は変更される場合があります</li>
-        <li>• 不明点は実施組織へ直接お問い合わせください</li>
+    <div class="mt-8 p-6" style="background: #fafafa; border: 2px solid #000;">
+      <h3 class="font-bold mb-3 uppercase tracking-wide text-sm" style="color: #000;">
+        Notice
+      </h3>
+      <ul class="text-xs space-y-2" style="color: #404040;">
+        <li class="flex items-start gap-2">
+          <span style="color: #000;">•</span>
+          <span>補助金の詳細は必ず公式サイトでご確認ください</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span style="color: #000;">•</span>
+          <span>申請条件や期限は変更される場合があります</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span style="color: #000;">•</span>
+          <span>不明点は実施組織へ直接お問い合わせください</span>
+        </li>
       </ul>
     </div>
   `;
@@ -506,18 +534,17 @@ function renderProfileSummary(summary) {
   }
   
   return `
-    <div class="bg-white border-4 border-black p-4 mb-4 brutalist-shadow fade-in">
-      <h3 class="text-lg font-bold mb-3 flex items-center gap-2">
-        <span>📋</span>
-        <span>あなたの回答内容</span>
+    <div style="background: #fff; border: 2px solid #000; padding: 1rem; margin-bottom: 1rem;" class="fade-in">
+      <h3 class="text-xs font-bold mb-3 uppercase tracking-wide" style="color: #000; border-bottom: 1px solid #e5e5e5; padding-bottom: 0.5rem;">
+        Your Answers
       </h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
         ${items.map(item => `
-          <div class="flex items-center gap-2 p-2 bg-gray-50 border-2 border-gray-200 ${item.label === 'AIへの追加要望' ? 'md:col-span-2' : ''}">
-            <span class="text-xl">${item.icon}</span>
-            <div class="flex-1">
-              <div class="text-xs text-gray-600 font-bold">${item.label}</div>
-              <div class="text-sm font-bold ${item.label === 'AIへの追加要望' ? 'whitespace-pre-wrap' : ''}">${item.value || '未回答'}</div>
+          <div class="info-box flex items-start gap-2 p-2 ${item.label === 'AIへの追加要望' ? 'col-span-2 sm:col-span-3 md:col-span-4' : ''}">
+            <span class="text-base flex-shrink-0">${item.icon}</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-bold uppercase tracking-wide mb-1" style="color: #737373;">${item.label}</div>
+              <div class="text-xs font-medium ${item.label === 'AIへの追加要望' ? 'whitespace-pre-wrap' : ''}" style="color: #000;">${item.value || '未回答'}</div>
             </div>
           </div>
         `).join('')}
@@ -529,97 +556,97 @@ function renderProfileSummary(summary) {
 // 補助金カード表示
 function renderGrantCard(rec, index) {
   const grant = rec.grant;
-  const rankingBadge = index < 3 ? ['🥇 第1位', '🥈 第2位', '🥉 第3位'][index] : `第${index + 1}位`;
-  const badgeColor = index === 0 ? 'bg-accent-yellow' : index === 1 ? 'bg-gray-200' : index === 2 ? 'bg-orange-200' : 'bg-gray-100';
+  const rankingBadge = index < 3 ? [`#${index + 1}`, `#${index + 1}`, `#${index + 1}`][index] : `#${index + 1}`;
   
   return `
-    <div class="grant-card fade-in p-4" style="animation-delay: ${index * 0.1}s">
-      <div class="flex justify-between items-start mb-3 gap-3">
-        <h3 class="text-lg font-bold flex-1">${grant.title}</h3>
-        <div class="flex flex-col items-end gap-1">
-          <span class="${badgeColor} px-2 py-0.5 text-xs font-bold border-2 border-black whitespace-nowrap">
+    <div class="grant-card fade-in p-3" style="animation-delay: ${index * 0.05}s; border: 2px solid ${index === 0 ? '#000' : '#d4d4d4'};">
+      <div class="flex justify-between items-start mb-3 gap-2">
+        <h3 class="text-sm font-bold flex-1" style="color: #000;">${grant.title}</h3>
+        <div class="flex gap-1 flex-shrink-0">
+          <span class="badge badge-primary text-xs">
             ${rankingBadge}
           </span>
-          <span class="bg-accent-green text-black px-2 py-0.5 font-mono text-xs border-2 border-black whitespace-nowrap">
-            ${Math.round(rec.matching_score * 100)}% マッチ
+          <span class="badge badge-success text-xs">
+            ${Math.round(rec.matching_score * 100)}%
           </span>
         </div>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3 text-sm">
-        <div class="flex items-center gap-2">
-          <span class="text-lg">💰</span>
-          <div>
-            <span class="text-gray-600">助成金額:</span>
-            <span class="ml-1 font-bold">${grant.max_amount_display || '記載なし'}</span>
+      <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+        <div class="info-box flex items-start gap-1 p-2">
+          <span class="text-sm flex-shrink-0">💰</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold uppercase tracking-wide mb-1" style="color: #737373;">Amount</div>
+            <div class="font-bold text-xs" style="color: #000;">${grant.max_amount_display || '記載なし'}</div>
           </div>
         </div>
         
-        <div class="flex items-center gap-2">
-          <span class="text-lg">📅</span>
-          <div>
-            <span class="text-gray-600">申請期限:</span>
-            <span class="ml-1 font-bold">${grant.deadline_display || '記載なし'}</span>
+        <div class="info-box flex items-start gap-1 p-2">
+          <span class="text-sm flex-shrink-0">📅</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold uppercase tracking-wide mb-1" style="color: #737373;">Deadline</div>
+            <div class="font-bold text-xs" style="color: #000;">${grant.deadline_display || '記載なし'}</div>
           </div>
         </div>
         
-        <div class="flex items-center gap-2">
-          <span class="text-lg">🏢</span>
-          <div>
-            <span class="text-gray-600">実施組織:</span>
-            <span class="ml-1">${grant.organization || '記載なし'}</span>
+        <div class="info-box flex items-start gap-1 p-2">
+          <span class="text-sm flex-shrink-0">🏢</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold uppercase tracking-wide mb-1" style="color: #737373;">Organization</div>
+            <div class="font-semibold text-xs" style="color: #000;">${grant.organization || '記載なし'}</div>
           </div>
         </div>
         
-        <div class="flex items-center gap-2">
-          <span class="text-lg">📍</span>
-          <div class="flex-1">
-            <span class="text-gray-600">対象地域:</span>
-            <span class="ml-1">${formatLocationDisplay(grant.prefecture_name)}</span>
+        <div class="info-box flex items-start gap-1 p-2">
+          <span class="text-sm flex-shrink-0">📍</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold uppercase tracking-wide mb-1" style="color: #737373;">Location</div>
+            <div class="font-semibold text-xs" style="color: #000;">${formatLocationDisplay(grant.prefecture_name)}</div>
           </div>
         </div>
       </div>
       
-      <div class="bg-gray-50 p-3 mb-3 border-l-4 border-accent-green">
-        <p class="text-xs font-bold mb-1 flex items-center gap-1">
-          <span>🎯</span>
-          <span>おすすめ理由</span>
+      <div style="background: #fafafa; border: 1px solid #d4d4d4; padding: 0.75rem; margin-bottom: 0.75rem;">
+        <p class="text-xs font-bold mb-1 uppercase tracking-wide" style="color: #525252;">
+          Why
         </p>
-        <div id="reasoning-${index}" class="text-xs text-gray-700">
+        <div id="reasoning-${index}" class="text-xs" style="color: #262626;">
           <p class="whitespace-pre-wrap">${rec.reasoning_summary || rec.reasoning}</p>
           ${rec.reasoning_summary && rec.reasoning_summary !== rec.reasoning ? `
             <button 
               onclick="toggleReasoning(${index})" 
-              class="mt-1 text-blue-600 underline hover:text-blue-800 text-xs"
+              class="mt-1 font-bold text-xs uppercase underline"
+              style="color: #000;"
             >
-              もっと見る ▼
+              More
             </button>
           ` : ''}
         </div>
-        <div id="reasoning-full-${index}" class="text-xs text-gray-700 whitespace-pre-wrap hidden">
+        <div id="reasoning-full-${index}" class="text-xs whitespace-pre-wrap hidden" style="color: #262626;">
           ${rec.reasoning}
           <button 
             onclick="toggleReasoning(${index})" 
-            class="mt-1 text-blue-600 underline hover:text-blue-800 text-xs"
+            class="mt-1 font-bold text-xs uppercase underline"
+            style="color: #000;"
           >
-            閉じる ▲
+            Close
           </button>
         </div>
       </div>
       
-      <div class="flex gap-3">
+      <div class="flex gap-2">
         <a
           href="${grant.url}"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex-1 bg-black text-white py-3 text-center font-bold hover:bg-gray-800 transition-colors border-2 border-black"
+          class="flex-1 btn-primary text-center py-2 text-xs"
         >
-          詳細を見る →
+          詳細 →
         </a>
         
         <button
           onclick="copyToClipboard('${grant.url}')"
-          class="px-4 border-2 border-black hover:bg-accent-yellow transition-colors"
+          class="px-3 btn-secondary text-base"
           title="URLをコピー"
         >
           📋

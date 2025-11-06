@@ -37,8 +37,37 @@ export const renderer = jsxRenderer(({ children }) => {
           `
         }} />
       </head>
-      <body class="min-h-screen bg-white text-black">
-        {children}
+      <body>
+        <div style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
+          <header class="app-header" style="flex-shrink: 0;">
+            <div class="px-6 py-3">
+              <div class="flex items-center gap-3">
+                <div class="logo-icon w-10 h-10 flex items-center justify-center text-xl">
+                  💡
+                </div>
+                <div>
+                  <h1 class="text-base font-bold tracking-tight" style="color: #000;">
+                    AI補助金マッチング
+                  </h1>
+                  <p class="text-xs" style="color: #525252;">あなたに最適な補助金を見つけます</p>
+                </div>
+              </div>
+            </div>
+          </header>
+          <main style="flex: 1; overflow-y: auto; width: 100%;">
+            <div class="px-6 py-4 h-full">
+              <div class="app-container h-full">
+                {children}
+              </div>
+            </div>
+          </main>
+          <footer style="border-top: 1px solid #e5e5e5; background: #fafafa; flex-shrink: 0;">
+            <div class="px-6 py-3 text-center">
+              <p class="text-xs font-medium tracking-wide" style="color: #525252;">© 2025 AI補助金マッチング</p>
+            </div>
+          </footer>
+        </div>
+        <script src="/static/app.js"></script>
       </body>
     </html>
   )

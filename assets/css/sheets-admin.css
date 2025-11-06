@@ -1,0 +1,313 @@
+/**
+ * Google Sheets Admin CSS
+ * スプレッドシート同期管理画面のスタイル
+ */
+
+/* Sync Page Container */
+.gi-sheets-sync-wrap {
+    max-width: 1200px;
+    margin: 20px 0;
+}
+
+.gi-sheets-sync-header {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.gi-sheets-sync-header h1 {
+    margin: 0 0 10px 0;
+    font-size: 23px;
+    font-weight: 400;
+    line-height: 1.3;
+}
+
+.gi-sheets-sync-header p {
+    margin: 0;
+    color: #646970;
+}
+
+/* Sync Actions */
+.gi-sync-actions {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.gi-sync-actions h2 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.gi-sync-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.gi-sync-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 3px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.gi-sync-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.gi-sync-button-primary {
+    background: #2271b1;
+    color: #fff;
+}
+
+.gi-sync-button-primary:hover:not(:disabled) {
+    background: #135e96;
+}
+
+.gi-sync-button-secondary {
+    background: #f6f7f7;
+    color: #2c3338;
+    border: 1px solid #c3c4c7;
+}
+
+.gi-sync-button-secondary:hover:not(:disabled) {
+    background: #f0f0f1;
+    border-color: #8c8f94;
+}
+
+.gi-sync-button-danger {
+    background: #d63638;
+    color: #fff;
+}
+
+.gi-sync-button-danger:hover:not(:disabled) {
+    background: #b32d2e;
+}
+
+/* Sync Status */
+.gi-sync-status {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.gi-sync-status h2 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.gi-status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.gi-status-item:last-child {
+    border-bottom: none;
+}
+
+.gi-status-label {
+    font-weight: 500;
+    color: #1d2327;
+}
+
+.gi-status-value {
+    color: #646970;
+}
+
+.gi-status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.gi-status-badge-success {
+    background: #d7f0db;
+    color: #00875a;
+}
+
+.gi-status-badge-warning {
+    background: #fff8e1;
+    color: #c19000;
+}
+
+.gi-status-badge-error {
+    background: #ffd6d9;
+    color: #c31d1d;
+}
+
+/* Sync Log */
+.gi-sync-log {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.gi-sync-log h2 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.gi-log-container {
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    border-radius: 3px;
+    padding: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.gi-log-entry {
+    padding: 5px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.gi-log-entry:last-child {
+    border-bottom: none;
+}
+
+.gi-log-timestamp {
+    color: #646970;
+    margin-right: 10px;
+}
+
+.gi-log-message {
+    color: #1d2327;
+}
+
+.gi-log-error {
+    color: #d63638;
+}
+
+.gi-log-success {
+    color: #00875a;
+}
+
+.gi-log-warning {
+    color: #c19000;
+}
+
+/* Progress Bar */
+.gi-progress-container {
+    margin: 15px 0;
+}
+
+.gi-progress-bar {
+    width: 100%;
+    height: 30px;
+    background: #f0f0f1;
+    border: 1px solid #dcdcde;
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.gi-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2271b1 0%, #135e96 100%);
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gi-progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px;
+    font-weight: 500;
+    color: #1d2327;
+    z-index: 1;
+}
+
+/* Loading Spinner */
+.gi-loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: gi-spin 0.8s linear infinite;
+}
+
+@keyframes gi-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Connection Test */
+.gi-connection-test {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.gi-test-result {
+    margin-top: 15px;
+    padding: 15px;
+    border-radius: 3px;
+    display: none;
+}
+
+.gi-test-result.show {
+    display: block;
+}
+
+.gi-test-result-success {
+    background: #d7f0db;
+    border: 1px solid #00875a;
+    color: #00875a;
+}
+
+.gi-test-result-error {
+    background: #ffd6d9;
+    border: 1px solid #c31d1d;
+    color: #c31d1d;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .gi-sync-buttons {
+        flex-direction: column;
+    }
+    
+    .gi-sync-button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .gi-status-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}

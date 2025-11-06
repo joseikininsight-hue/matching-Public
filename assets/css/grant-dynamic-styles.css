@@ -1,0 +1,778 @@
+/**
+ * Grant Dynamic Styles - Monochrome & Stylish Design
+ * 助成金投稿用の動的生成CSSスタイルシート
+ * 
+ * @package Grant_Insight_Perfect
+ * @version 1.0.0
+ * @since 9.4.0
+ * 
+ * デザインコンセプト:
+ * - 白黒モノクロームデザイン
+ * - スタイリッシュで洗練された外観
+ * - 可読性と情報の視認性を最優先
+ * - SEO最適化されたセマンティックHTML対応
+ * - 完全レスポンシブ対応
+ */
+
+/* ============================================
+   カラーパレット（モノクローム）
+   ============================================ */
+:root {
+    /* 基本カラー */
+    --gdc-white: #ffffff;
+    --gdc-black: #000000;
+    --gdc-gray-50: #fafafa;
+    --gdc-gray-100: #f5f5f5;
+    --gdc-gray-200: #eeeeee;
+    --gdc-gray-300: #e0e0e0;
+    --gdc-gray-400: #bdbdbd;
+    --gdc-gray-500: #9e9e9e;
+    --gdc-gray-600: #757575;
+    --gdc-gray-700: #616161;
+    --gdc-gray-800: #424242;
+    --gdc-gray-900: #212121;
+    
+    /* タイポグラフィ */
+    --gdc-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', 'Yu Gothic', 'Hiragino Sans', sans-serif;
+    --gdc-font-monospace: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    
+    /* フォントサイズ（レスポンシブ対応） */
+    --gdc-text-xs: 0.75rem;    /* 12px */
+    --gdc-text-sm: 0.875rem;   /* 14px */
+    --gdc-text-base: 1rem;     /* 16px */
+    --gdc-text-md: 1.0625rem;  /* 17px */
+    --gdc-text-lg: 1.125rem;   /* 18px */
+    --gdc-text-xl: 1.25rem;    /* 20px */
+    --gdc-text-2xl: 1.5rem;    /* 24px */
+    --gdc-text-3xl: 1.875rem;  /* 30px */
+    
+    /* スペーシング */
+    --gdc-space-1: 0.25rem;    /* 4px */
+    --gdc-space-2: 0.5rem;     /* 8px */
+    --gdc-space-3: 0.75rem;    /* 12px */
+    --gdc-space-4: 1rem;       /* 16px */
+    --gdc-space-5: 1.25rem;    /* 20px */
+    --gdc-space-6: 1.5rem;     /* 24px */
+    --gdc-space-8: 2rem;       /* 32px */
+    --gdc-space-10: 2.5rem;    /* 40px */
+    --gdc-space-12: 3rem;      /* 48px */
+    
+    /* ボーダー・シャドウ */
+    --gdc-border-width: 1px;
+    --gdc-border-width-thick: 2px;
+    --gdc-border-color: var(--gdc-gray-300);
+    --gdc-border-color-dark: var(--gdc-gray-800);
+    --gdc-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --gdc-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --gdc-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --gdc-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    
+    /* トランジション */
+    --gdc-transition-fast: 150ms ease;
+    --gdc-transition-base: 200ms ease;
+    --gdc-transition-slow: 300ms ease;
+    
+    /* ボーダーレディウス */
+    --gdc-radius-none: 0;
+    --gdc-radius-sm: 2px;
+    --gdc-radius: 4px;
+    --gdc-radius-md: 6px;
+    --gdc-radius-lg: 8px;
+    
+    /* 行間 */
+    --gdc-line-height-tight: 1.25;
+    --gdc-line-height-normal: 1.5;
+    --gdc-line-height-relaxed: 1.625;
+    --gdc-line-height-loose: 1.75;
+}
+
+/* ============================================
+   ベーススタイル
+   ============================================ */
+
+.gdc-content-wrapper {
+    font-family: var(--gdc-font-family);
+    color: var(--gdc-gray-900);
+    line-height: var(--gdc-line-height-relaxed);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   段落 (Paragraph)
+   ============================================ */
+
+.gdc-paragraph {
+    margin-bottom: var(--gdc-space-4);
+    font-size: var(--gdc-text-base);
+    line-height: var(--gdc-line-height-relaxed);
+    color: var(--gdc-gray-800);
+}
+
+.gdc-paragraph--lead {
+    font-size: var(--gdc-text-lg);
+    font-weight: 500;
+    line-height: var(--gdc-line-height-relaxed);
+    color: var(--gdc-gray-900);
+    margin-bottom: var(--gdc-space-6);
+}
+
+.gdc-paragraph--long {
+    text-align: justify;
+}
+
+.gdc-paragraph--short {
+    margin-bottom: var(--gdc-space-3);
+}
+
+.gdc-paragraph:last-child {
+    margin-bottom: 0;
+}
+
+/* ============================================
+   見出し (Headings)
+   ============================================ */
+
+.gdc-heading {
+    font-weight: 700;
+    line-height: var(--gdc-line-height-tight);
+    color: var(--gdc-black);
+    margin-top: var(--gdc-space-8);
+    margin-bottom: var(--gdc-space-4);
+    letter-spacing: -0.02em;
+}
+
+.gdc-heading:first-child {
+    margin-top: 0;
+}
+
+.gdc-heading--h2 {
+    font-size: var(--gdc-text-2xl);
+    padding-bottom: var(--gdc-space-3);
+    border-bottom: var(--gdc-border-width-thick) solid var(--gdc-black);
+    margin-bottom: var(--gdc-space-5);
+}
+
+.gdc-heading--h3 {
+    font-size: var(--gdc-text-xl);
+    padding-left: var(--gdc-space-3);
+    border-left: 4px solid var(--gdc-gray-900);
+}
+
+.gdc-heading--h4 {
+    font-size: var(--gdc-text-lg);
+    font-weight: 600;
+}
+
+.gdc-heading--h5,
+.gdc-heading--h6 {
+    font-size: var(--gdc-text-base);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.gdc-heading--long {
+    line-height: var(--gdc-line-height-normal);
+}
+
+/* ============================================
+   テーブル (Table)
+   ============================================ */
+
+.gdc-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: var(--gdc-space-6);
+    font-size: var(--gdc-text-sm);
+    background: var(--gdc-white);
+    border: var(--gdc-border-width) solid var(--gdc-border-color);
+    border-radius: var(--gdc-radius);
+    overflow: hidden;
+}
+
+.gdc-table--monochrome {
+    box-shadow: var(--gdc-shadow);
+}
+
+/* テーブルヘッダー */
+.gdc-table thead {
+    background: var(--gdc-gray-900);
+    color: var(--gdc-white);
+}
+
+.gdc-table th {
+    padding: var(--gdc-space-3) var(--gdc-space-4);
+    text-align: left;
+    font-weight: 700;
+    font-size: var(--gdc-text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: var(--gdc-border-width-thick) solid var(--gdc-black);
+}
+
+/* テーブルボディ */
+.gdc-table tbody tr {
+    border-bottom: var(--gdc-border-width) solid var(--gdc-border-color);
+    transition: background-color var(--gdc-transition-fast);
+}
+
+.gdc-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.gdc-table tbody tr:hover {
+    background-color: var(--gdc-gray-50);
+}
+
+.gdc-table td {
+    padding: var(--gdc-space-3) var(--gdc-space-4);
+    color: var(--gdc-gray-800);
+    line-height: var(--gdc-line-height-normal);
+}
+
+/* ストライプパターン */
+.gdc-table--striped tbody tr:nth-child(odd) {
+    background-color: var(--gdc-gray-50);
+}
+
+.gdc-table--striped tbody tr:nth-child(even) {
+    background-color: var(--gdc-white);
+}
+
+.gdc-table--striped tbody tr:hover {
+    background-color: var(--gdc-gray-100);
+}
+
+/* ヘッダー付きテーブル */
+.gdc-table--with-header tbody tr:first-child td {
+    padding-top: var(--gdc-space-4);
+}
+
+/* コンパクトテーブル */
+.gdc-table--compact th,
+.gdc-table--compact td {
+    padding: var(--gdc-space-2) var(--gdc-space-3);
+}
+
+/* 大きいテーブル */
+.gdc-table--large {
+    font-size: var(--gdc-text-xs);
+}
+
+/* レスポンシブテーブル */
+@media (max-width: 768px) {
+    .gdc-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: var(--gdc-radius-sm);
+    }
+    
+    .gdc-table th,
+    .gdc-table td {
+        padding: var(--gdc-space-2) var(--gdc-space-3);
+        font-size: var(--gdc-text-xs);
+    }
+}
+
+/* ============================================
+   リスト (Lists)
+   ============================================ */
+
+.gdc-list {
+    margin-bottom: var(--gdc-space-5);
+    padding-left: var(--gdc-space-6);
+}
+
+.gdc-list--unordered {
+    list-style-type: disc;
+}
+
+.gdc-list--ordered {
+    list-style-type: decimal;
+}
+
+.gdc-list li {
+    margin-bottom: var(--gdc-space-2);
+    line-height: var(--gdc-line-height-relaxed);
+    color: var(--gdc-gray-800);
+    padding-left: var(--gdc-space-2);
+}
+
+.gdc-list li::marker {
+    color: var(--gdc-black);
+    font-weight: 700;
+}
+
+/* ネストされたリスト */
+.gdc-list--nested {
+    margin-top: var(--gdc-space-2);
+    margin-bottom: var(--gdc-space-2);
+    padding-left: var(--gdc-space-5);
+}
+
+.gdc-list--nested li {
+    margin-bottom: var(--gdc-space-1);
+}
+
+/* 短いリスト */
+.gdc-list--short li {
+    margin-bottom: var(--gdc-space-1);
+}
+
+/* 長いリスト */
+.gdc-list--long {
+    border-left: var(--gdc-border-width-thick) solid var(--gdc-gray-300);
+    padding-left: var(--gdc-space-5);
+    background: var(--gdc-gray-50);
+    padding-top: var(--gdc-space-3);
+    padding-bottom: var(--gdc-space-3);
+    border-radius: var(--gdc-radius);
+}
+
+/* モノクロームスタイル */
+.gdc-list--monochrome li {
+    position: relative;
+}
+
+.gdc-list--monochrome li::before {
+    content: '';
+    position: absolute;
+    left: calc(-1 * var(--gdc-space-4));
+    top: 0.65em;
+    width: 6px;
+    height: 6px;
+    background: var(--gdc-black);
+    border-radius: 50%;
+}
+
+.gdc-list--unordered.gdc-list--monochrome li::marker {
+    content: '';
+}
+
+/* ============================================
+   引用 (Blockquote)
+   ============================================ */
+
+.gdc-blockquote {
+    margin: var(--gdc-space-6) 0;
+    padding: var(--gdc-space-5) var(--gdc-space-6);
+    background: var(--gdc-gray-50);
+    border-left: 4px solid var(--gdc-black);
+    font-size: var(--gdc-text-md);
+    line-height: var(--gdc-line-height-loose);
+    color: var(--gdc-gray-800);
+    font-style: italic;
+    position: relative;
+}
+
+.gdc-blockquote::before {
+    content: '"';
+    position: absolute;
+    top: var(--gdc-space-3);
+    left: var(--gdc-space-4);
+    font-size: var(--gdc-text-3xl);
+    line-height: 1;
+    color: var(--gdc-gray-400);
+    font-family: Georgia, serif;
+}
+
+.gdc-blockquote--monochrome {
+    box-shadow: var(--gdc-shadow-sm);
+}
+
+.gdc-blockquote--short {
+    padding: var(--gdc-space-4) var(--gdc-space-5);
+    font-size: var(--gdc-text-base);
+}
+
+.gdc-blockquote--long {
+    padding: var(--gdc-space-6) var(--gdc-space-8);
+}
+
+.gdc-blockquote p:last-child {
+    margin-bottom: 0;
+}
+
+/* ============================================
+   画像 (Images)
+   ============================================ */
+
+.gdc-image {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: var(--gdc-space-6) 0;
+    border: var(--gdc-border-width) solid var(--gdc-border-color);
+    border-radius: var(--gdc-radius);
+}
+
+.gdc-image--monochrome {
+    box-shadow: var(--gdc-shadow-md);
+    transition: transform var(--gdc-transition-base), box-shadow var(--gdc-transition-base);
+}
+
+.gdc-image--monochrome:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--gdc-shadow-lg);
+}
+
+.gdc-image--responsive {
+    width: 100%;
+}
+
+.gdc-image--center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.gdc-image--left {
+    float: left;
+    margin-right: var(--gdc-space-5);
+    margin-bottom: var(--gdc-space-4);
+    max-width: 50%;
+}
+
+.gdc-image--right {
+    float: right;
+    margin-left: var(--gdc-space-5);
+    margin-bottom: var(--gdc-space-4);
+    max-width: 50%;
+}
+
+@media (max-width: 768px) {
+    .gdc-image--left,
+    .gdc-image--right {
+        float: none;
+        max-width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+
+/* ============================================
+   強調テキスト (Emphasis)
+   ============================================ */
+
+.gdc-strong {
+    font-weight: 700;
+    color: var(--gdc-black);
+    background: linear-gradient(transparent 60%, var(--gdc-gray-300) 60%);
+}
+
+.gdc-emphasis {
+    font-style: italic;
+    color: var(--gdc-gray-700);
+}
+
+/* ============================================
+   リンク (Links)
+   ============================================ */
+
+.gdc-link {
+    color: var(--gdc-black);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    transition: all var(--gdc-transition-fast);
+}
+
+.gdc-link:hover {
+    color: var(--gdc-gray-700);
+    text-decoration-thickness: 2px;
+}
+
+.gdc-link:active {
+    color: var(--gdc-gray-600);
+}
+
+.gdc-link--internal {
+    text-decoration-style: solid;
+}
+
+.gdc-link--external {
+    text-decoration-style: dotted;
+}
+
+.gdc-link--external::after {
+    content: ' ↗';
+    font-size: 0.85em;
+    opacity: 0.6;
+}
+
+/* ============================================
+   コードブロック (Code)
+   ============================================ */
+
+code {
+    font-family: var(--gdc-font-monospace);
+    font-size: 0.9em;
+    padding: var(--gdc-space-1) var(--gdc-space-2);
+    background: var(--gdc-gray-100);
+    border: var(--gdc-border-width) solid var(--gdc-gray-300);
+    border-radius: var(--gdc-radius-sm);
+    color: var(--gdc-gray-900);
+}
+
+pre {
+    font-family: var(--gdc-font-monospace);
+    font-size: var(--gdc-text-sm);
+    line-height: var(--gdc-line-height-relaxed);
+    padding: var(--gdc-space-4);
+    background: var(--gdc-gray-900);
+    color: var(--gdc-gray-100);
+    border-radius: var(--gdc-radius);
+    overflow-x: auto;
+    margin: var(--gdc-space-5) 0;
+    box-shadow: var(--gdc-shadow);
+}
+
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+}
+
+/* ============================================
+   区切り線 (Horizontal Rule)
+   ============================================ */
+
+hr {
+    border: none;
+    border-top: var(--gdc-border-width) solid var(--gdc-border-color);
+    margin: var(--gdc-space-8) 0;
+}
+
+hr.gdc-divider--thick {
+    border-top-width: var(--gdc-border-width-thick);
+    border-top-color: var(--gdc-black);
+}
+
+/* ============================================
+   フィギュア & キャプション (Figure & Caption)
+   ============================================ */
+
+figure {
+    margin: var(--gdc-space-6) 0;
+}
+
+figcaption {
+    margin-top: var(--gdc-space-2);
+    font-size: var(--gdc-text-sm);
+    color: var(--gdc-gray-600);
+    text-align: center;
+    font-style: italic;
+}
+
+/* ============================================
+   定義リスト (Definition List)
+   ============================================ */
+
+dl {
+    margin-bottom: var(--gdc-space-5);
+}
+
+dt {
+    font-weight: 700;
+    color: var(--gdc-black);
+    margin-bottom: var(--gdc-space-1);
+}
+
+dd {
+    margin-left: var(--gdc-space-5);
+    margin-bottom: var(--gdc-space-3);
+    color: var(--gdc-gray-800);
+    line-height: var(--gdc-line-height-relaxed);
+}
+
+/* ============================================
+   デバッグ情報（管理者のみ表示）
+   ============================================ */
+
+.gdc-debug-info {
+    background: var(--gdc-gray-100);
+    border: var(--gdc-border-width-thick) solid var(--gdc-gray-800);
+    padding: var(--gdc-space-4);
+    margin: var(--gdc-space-6) 0;
+    font-family: var(--gdc-font-monospace);
+    font-size: var(--gdc-text-xs);
+    border-radius: var(--gdc-radius);
+}
+
+.gdc-debug-info h4 {
+    margin-top: 0;
+    margin-bottom: var(--gdc-space-3);
+    font-size: var(--gdc-text-sm);
+    color: var(--gdc-black);
+}
+
+.gdc-debug-info pre {
+    background: var(--gdc-white);
+    color: var(--gdc-black);
+    padding: var(--gdc-space-3);
+    border: var(--gdc-border-width) solid var(--gdc-border-color);
+    border-radius: var(--gdc-radius-sm);
+    overflow-x: auto;
+    font-size: var(--gdc-text-xs);
+}
+
+/* ============================================
+   アクセシビリティ対応
+   ============================================ */
+
+/* フォーカス状態の明確化 */
+a:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--gdc-black);
+    outline-offset: 2px;
+    border-radius: var(--gdc-radius-sm);
+}
+
+/* ハイコントラストモード対応 */
+@media (prefers-contrast: high) {
+    :root {
+        --gdc-border-color: var(--gdc-black);
+    }
+    
+    .gdc-table {
+        border-width: var(--gdc-border-width-thick);
+    }
+    
+    .gdc-link {
+        text-decoration-thickness: 2px;
+    }
+}
+
+/* モーション削減対応 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ダークモード対応（将来拡張用） */
+@media (prefers-color-scheme: dark) {
+    /* 現在は白黒デザインのみ、ダークモードは将来実装 */
+}
+
+/* ============================================
+   プリント対応
+   ============================================ */
+
+@media print {
+    .gdc-content-wrapper {
+        color: var(--gdc-black);
+    }
+    
+    .gdc-table {
+        border: var(--gdc-border-width-thick) solid var(--gdc-black);
+    }
+    
+    .gdc-table th {
+        background: var(--gdc-white);
+        color: var(--gdc-black);
+        border: var(--gdc-border-width) solid var(--gdc-black);
+    }
+    
+    .gdc-table td {
+        border: var(--gdc-border-width) solid var(--gdc-black);
+    }
+    
+    .gdc-link {
+        color: var(--gdc-black);
+        text-decoration: underline;
+    }
+    
+    .gdc-link--external::after {
+        content: ' (' attr(href) ')';
+        font-size: 0.8em;
+    }
+    
+    .gdc-image {
+        page-break-inside: avoid;
+    }
+    
+    .gdc-blockquote {
+        page-break-inside: avoid;
+    }
+    
+    .gdc-table {
+        page-break-inside: avoid;
+    }
+}
+
+/* ============================================
+   レスポンシブ対応（タブレット）
+   ============================================ */
+
+@media (max-width: 1024px) {
+    :root {
+        --gdc-text-base: 0.9375rem;  /* 15px */
+        --gdc-text-lg: 1.0625rem;    /* 17px */
+        --gdc-text-xl: 1.125rem;     /* 18px */
+        --gdc-text-2xl: 1.375rem;    /* 22px */
+    }
+    
+    .gdc-paragraph {
+        font-size: var(--gdc-text-base);
+    }
+}
+
+/* ============================================
+   レスポンシブ対応（スマートフォン）
+   ============================================ */
+
+@media (max-width: 768px) {
+    :root {
+        --gdc-space-4: 0.875rem;     /* 14px */
+        --gdc-space-5: 1rem;         /* 16px */
+        --gdc-space-6: 1.25rem;      /* 20px */
+        --gdc-space-8: 1.5rem;       /* 24px */
+    }
+    
+    .gdc-heading--h2 {
+        font-size: var(--gdc-text-xl);
+    }
+    
+    .gdc-heading--h3 {
+        font-size: var(--gdc-text-lg);
+    }
+    
+    .gdc-blockquote {
+        padding: var(--gdc-space-4) var(--gdc-space-5);
+        font-size: var(--gdc-text-base);
+    }
+    
+    .gdc-blockquote::before {
+        font-size: var(--gdc-text-2xl);
+    }
+    
+    .gdc-list {
+        padding-left: var(--gdc-space-5);
+    }
+}
+
+/* ============================================
+   レスポンシブ対応（小型スマートフォン）
+   ============================================ */
+
+@media (max-width: 375px) {
+    :root {
+        --gdc-text-base: 0.875rem;   /* 14px */
+        --gdc-text-lg: 1rem;         /* 16px */
+        --gdc-text-xl: 1.0625rem;    /* 17px */
+        --gdc-text-2xl: 1.25rem;     /* 20px */
+    }
+    
+    .gdc-paragraph--lead {
+        font-size: var(--gdc-text-base);
+    }
+}
