@@ -134,7 +134,6 @@ wordpress.get('/sync', async (c) => {
         
         // D1データベースに挿入または更新
         // ACFフィールドが空の場合はデフォルト値を使用
-        // 注意: descriptionとeligible_expensesカラムは存在しないため、contentとexcerptを使用
         await db.prepare(`
           INSERT OR REPLACE INTO grants (
             wordpress_id,
@@ -153,10 +152,8 @@ wordpress.get('/sync', async (c) => {
             application_status,
             wp_post_id,
             wp_sync_status,
-            last_wp_sync,
-            updated_at,
             status
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           post.id,                                    // wordpress_id
           title,                                      // title
@@ -174,7 +171,7 @@ wordpress.get('/sync', async (c) => {
           acf.application_status || 'open',           // application_status
           post.id,                                    // wp_post_id
           'synced',                                   // wp_sync_status
-          post.status || 'publish',                   // status
+          post.status || 'publish'                    // status
         ).run();
         
         console.log(`✅ Synced post ${post.id}: ${title}`);
@@ -306,10 +303,8 @@ wordpress.post('/webhook', async (c) => {
         application_status,
         wp_post_id,
         wp_sync_status,
-        last_wp_sync,
-        updated_at,
         status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       post.id,
       title,
@@ -327,7 +322,7 @@ wordpress.post('/webhook', async (c) => {
       acf.application_status || 'open',
       post.id,
       'synced',
-      post.status || 'publish',
+      post.status || 'publish'
     ).run();
 
     // Webhook同期ログを記録（テーブルが存在する場合のみ）
