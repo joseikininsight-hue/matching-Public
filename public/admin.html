@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理画面 - AI補助金マッチング</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f5f5f5;
+        }
+        .brutalist-border {
+            border: 8px solid #000000;
+        }
+        .brutalist-shadow {
+            box-shadow: 12px 12px 0px 0px rgba(0, 0, 0, 1);
+        }
+        .btn-primary {
+            background-color: #00FF00;
+            color: #000000;
+            font-weight: bold;
+            border: 4px solid #000000;
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #FFFF00;
+            transform: translate(2px, 2px);
+            box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+        }
+        .btn-secondary {
+            background-color: #FFFFFF;
+            color: #000000;
+            font-weight: bold;
+            border: 4px solid #000000;
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            background-color: #f0f0f0;
+        }
+        .file-upload-area {
+            border: 4px dashed #000000;
+            background-color: #ffffff;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .file-upload-area:hover {
+            background-color: #00FF00;
+        }
+        .file-upload-area.dragover {
+            background-color: #FFFF00;
+            border-style: solid;
+        }
+        .progress-bar {
+            height: 30px;
+            background-color: #e0e0e0;
+            border: 4px solid #000000;
+            position: relative;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #00FF00;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .result-box {
+            background-color: #ffffff;
+            border: 4px solid #000000;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .error-box {
+            background-color: #ffebee;
+            border: 4px solid #f44336;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .success-box {
+            background-color: #e8f5e9;
+            border: 4px solid #4caf50;
+            padding: 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="brutalist-border brutalist-shadow bg-white p-8 mb-8">
+            <h1 class="text-4xl font-bold mb-4">
+                📊 管理画面
+            </h1>
+            <p class="text-gray-700">補助金データのインポート・管理</p>
+        </div>
+
+        <!-- APIキー設定 -->
+        <div class="brutalist-border bg-white p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">🔑 APIキー設定</h2>
+            <div class="mb-4">
+                <label class="block font-bold mb-2">JWT Secret (管理者認証用)</label>
+                <input type="password" id="jwtSecret" 
+                       class="w-full border-4 border-black p-3 font-mono"
+                       placeholder="your_jwt_secret_key_here">
+                <p class="text-sm text-gray-600 mt-2">※ .dev.vars ファイルに設定されているJWT_SECRETを入力してください</p>
+            </div>
+        </div>
+
+        <!-- ファイルアップロード -->
+        <div class="brutalist-border bg-white p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">📁 ファイルアップロード</h2>
+            
+            <div class="mb-6">
+                <label class="block font-bold mb-2">ファイル形式</label>
+                <select id="fileType" class="border-4 border-black p-3 font-bold">
+                    <option value="csv">CSV (.csv)</option>
+                    <option value="excel">Excel (.xlsx, .xls)</option>
+                </select>
+            </div>
+
+            <div id="dropZone" class="file-upload-area mb-4">
+                <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
+                <div>
+                    <p class="text-3xl mb-2">📤</p>
+                    <p class="font-bold text-lg mb-2">ファイルをドラッグ＆ドロップ</p>
+                    <p class="text-gray-600 mb-4">または</p>
+                    <button class="btn-secondary" onclick="document.getElementById('fileInput').click()">
+                        ファイルを選択
+                    </button>
+                    <p class="text-sm text-gray-600 mt-4">対応形式: CSV, Excel (.xlsx, .xls) / 最大サイズ: 10MB</p>
+                </div>
+            </div>
+
+            <div id="fileInfo" class="hidden mb-4 p-4 bg-gray-100 border-2 border-black">
+                <p><strong>選択されたファイル:</strong> <span id="fileName"></span></p>
+                <p><strong>ファイルサイズ:</strong> <span id="fileSize"></span></p>
+            </div>
+
+            <div class="mb-4">
+                <label class="flex items-center">
+                    <input type="checkbox" id="skipDuplicates" class="mr-2 w-5 h-5">
+                    <span class="font-bold">既存データをスキップ（重複回避）</span>
+                </label>
+            </div>
+
+            <button id="uploadBtn" class="btn-primary w-full" disabled>
+                アップロード開始
+            </button>
+        </div>
+
+        <!-- 進捗表示 -->
+        <div id="progressSection" class="hidden mb-6">
+            <div class="brutalist-border bg-white p-6">
+                <h3 class="text-xl font-bold mb-4">⏳ 処理中...</h3>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill" style="width: 0%">
+                        <span id="progressText">0%</span>
+                    </div>
+                </div>
+                <p id="progressMessage" class="text-center mt-4 font-bold"></p>
+            </div>
+        </div>
+
+        <!-- 結果表示 -->
+        <div id="resultSection" class="hidden"></div>
+
+        <!-- サンプルCSVテンプレート -->
+        <div class="brutalist-border bg-white p-6">
+            <h2 class="text-2xl font-bold mb-4">📄 CSVテンプレート</h2>
+            <p class="mb-4">以下のカラム名を使用してCSV/Excelファイルを作成してください：</p>
+            
+            <div class="bg-gray-100 p-4 border-2 border-black font-mono text-sm overflow-x-auto">
+                <p class="mb-2"><strong>必須カラム:</strong></p>
+                <p>title または タイトル または 補助金名</p>
+                
+                <p class="mt-4 mb-2"><strong>オプションカラム:</strong></p>
+                <p>wordpress_id, ID, id（※未指定の場合は自動生成）</p>
+                <p>content, 内容, 詳細</p>
+                <p>max_amount_numeric, 金額（数値）</p>
+                <p>max_amount_display, 金額表示（文字列）</p>
+                <p>deadline_date, 期限日（YYYY-MM-DD形式）</p>
+                <p>organization, 実施機関</p>
+                <p>prefecture_name, 都道府県</p>
+                <p>categories, カテゴリー（カンマ区切り）</p>
+                <p>tags, タグ（カンマ区切り）</p>
+            </div>
+
+            <button class="btn-secondary mt-4" onclick="downloadSampleCSV()">
+                サンプルCSVをダウンロード
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin + '/api/admin';
+        let selectedFile = null;
+
+        // ドラッグ＆ドロップ
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            selectedFile = file;
+            document.getElementById('fileInfo').classList.remove('hidden');
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(2) + ' KB';
+            document.getElementById('uploadBtn').disabled = false;
+        }
+
+        // アップロード
+        document.getElementById('uploadBtn').addEventListener('click', async () => {
+            if (!selectedFile) {
+                alert('ファイルを選択してください');
+                return;
+            }
+
+            const jwtSecret = document.getElementById('jwtSecret').value.trim();
+            if (!jwtSecret) {
+                alert('JWT Secretを入力してください');
+                return;
+            }
+
+            const fileType = document.getElementById('fileType').value;
+            const skipDuplicates = document.getElementById('skipDuplicates').checked;
+
+            // 進捗表示
+            document.getElementById('progressSection').classList.remove('hidden');
+            document.getElementById('resultSection').classList.add('hidden');
+            document.getElementById('uploadBtn').disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('skip_duplicates', skipDuplicates);
+                formData.append('batch_size', '100');
+
+                const endpoint = fileType === 'csv' 
+                    ? `${API_BASE_URL}/import/grants-csv`
+                    : `${API_BASE_URL}/import/grants-excel`;
+
+                updateProgress(50, 'アップロード中...');
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${jwtSecret}`
+                    },
+                    body: formData
+                });
+
+                updateProgress(100, '処理完了');
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showResult(result, 'success');
+                } else {
+                    showResult(result, 'error');
+                }
+
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            } finally {
+                document.getElementById('progressSection').classList.add('hidden');
+                document.getElementById('uploadBtn').disabled = false;
+            }
+        });
+
+        function updateProgress(percent, message) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = percent + '%';
+            document.getElementById('progressMessage').textContent = message;
+        }
+
+        function showResult(result, type) {
+            const resultSection = document.getElementById('resultSection');
+            resultSection.classList.remove('hidden');
+
+            if (type === 'success') {
+                resultSection.innerHTML = `
+                    <div class="success-box">
+                        <h3 class="text-2xl font-bold mb-4">✅ インポート成功</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="font-bold">ファイル名:</p>
+                                <p>${result.data.summary.filename}</p>
+                            </div>
+                            <div>
+                                <p class="font-bold">ファイルサイズ:</p>
+                                <p>${result.data.summary.file_size}</p>
+                            </div>
+                            <div>
+                                <p class="font-bold">総件数:</p>
+                                <p>${result.data.stats.total}件</p>
+                            </div>
+                            <div>
+                                <p class="font-bold">成功率:</p>
+                                <p>${result.data.summary.success_rate}</p>
+                            </div>
+                            <div>
+                                <p class="font-bold">新規追加:</p>
+                                <p class="text-green-600 font-bold">${result.data.stats.inserted}件</p>
+                            </div>
+                            <div>
+                                <p class="font-bold">更新:</p>
+                                <p class="text-blue-600 font-bold">${result.data.stats.updated}件</p>
+                            </div>
+                            <div>
+                                <p class="font-bold">スキップ:</p>
+                                <p class="text-gray-600">${result.data.stats.skipped}件</p>
+                            </div>
+                            <div>
+                                <p class="font-bold">失敗:</p>
+                                <p class="text-red-600 font-bold">${result.data.stats.failed}件</p>
+                            </div>
+                            <div>
+                                <p class="font-bold">処理時間:</p>
+                                <p>${result.data.summary.processing_time}</p>
+                            </div>
+                            <div>
+                                <p class="font-bold">平均処理時間:</p>
+                                <p>${result.data.summary.avg_time_per_record}</p>
+                            </div>
+                        </div>
+                        ${result.data.stats.errors.length > 0 ? `
+                            <div class="mt-4">
+                                <p class="font-bold text-red-600">エラー詳細:</p>
+                                <div class="bg-white p-4 border-2 border-red-600 mt-2 max-h-40 overflow-y-auto">
+                                    ${result.data.stats.errors.map(err => `
+                                        <p class="text-sm">行${err.row}: ${err.error}</p>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else {
+                resultSection.innerHTML = `
+                    <div class="error-box">
+                        <h3 class="text-2xl font-bold mb-4">❌ エラー</h3>
+                        <p class="font-bold">${result.error || 'インポートに失敗しました'}</p>
+                        ${result.details ? `<p class="text-sm mt-2">${result.details}</p>` : ''}
+                    </div>
+                `;
+            }
+        }
+
+        // サンプルCSVダウンロード
+        function downloadSampleCSV() {
+            const csv = `title,content,max_amount_numeric,max_amount_display,deadline_date,organization,prefecture_name,categories,tags
+DX推進補助金,デジタル化を支援します,5000000,最大500万円,2025-12-31,経済産業省,全国,"dx_digital,it_software","DX,デジタル化"
+設備投資促進補助金,製造設備の導入を支援,10000000,最大1000万円,2025-11-30,中小企業庁,全国,"equipment,manufacturing","設備投資,製造業"
+創業・起業支援補助金,新規創業を支援します,2000000,最大200万円,,東京都産業労働局,東京都,"startup,service","創業,起業"`;
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'sample_grants.csv';
+            link.click();
+        }
+    </script>
+</body>
+</html>
