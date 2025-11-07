@@ -2,7 +2,7 @@ import { jsxRenderer } from 'hono/jsx-renderer'
 
 export const renderer = jsxRenderer(({ children }) => {
   return (
-    <html lang="ja">
+    <html lang="ja" style="height: 100%; margin: 0; padding: 0;">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -37,8 +37,8 @@ export const renderer = jsxRenderer(({ children }) => {
           `
         }} />
       </head>
-      <body>
-        <div style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
+      <body style="height: 100%; margin: 0; padding: 0;">
+        <div style="display: flex; flex-direction: column; height: 100%; width: 100%; overflow: hidden;">
           <header class="app-header" style="flex-shrink: 0;">
             <div style="padding: 0.75rem 1rem;">
               <div class="flex items-center gap-3">
