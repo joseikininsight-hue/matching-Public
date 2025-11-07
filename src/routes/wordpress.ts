@@ -138,6 +138,22 @@ wordpress.get('/sync', async (c) => {
         const tagNames = tags.map((t: any) => t.name).join(', ');
         const municipalityNames = municipalities.map((m: any) => m.name).join(', ');
         
+        // ACFフィールドから追加データを取得
+        const organization = acf.organization || null;
+        const maxAmountDisplay = acf.max_amount || null;
+        const maxAmountNumeric = acf.max_amount_numeric || null;
+        const deadlineDisplay = acf.deadline || null;
+        const deadlineDate = acf.deadline_date || null;
+        const officialUrl = acf.official_url || post.link || null;
+        const grantTarget = acf.grant_target || null;
+        const eligibleExpenses = acf.eligible_expenses || null;
+        const requiredDocuments = acf.required_documents || null;
+        const applicationStatus = acf.application_status || null;
+        const adoptionRate = acf.adoption_rate || null;
+        const difficultyLevel = acf.difficulty_level || null;
+        const areaNotes = acf.area_notes || null;
+        const subsidyRateDetailed = acf.subsidy_rate_detailed || null;
+        
         // D1データベースに挿入または更新
         await db.prepare(`
           INSERT OR REPLACE INTO grants (
@@ -146,22 +162,50 @@ wordpress.get('/sync', async (c) => {
             content,
             excerpt,
             status,
+            url,
+            organization,
+            max_amount_display,
+            max_amount_numeric,
+            deadline_display,
+            deadline_date,
             prefecture_name,
             categories,
             tags,
             target_municipality,
+            grant_target,
+            eligible_expenses,
+            required_documents,
+            application_status,
+            adoption_rate,
+            difficulty_level,
+            area_notes,
+            subsidy_rate_detailed,
             updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         `).bind(
           post.id,                                    // wordpress_id
           title,                                      // title
           contentHtml,                                // content (HTML)
           excerpt,                                    // excerpt (plain text)
           post.status || 'publish',                   // status
+          officialUrl,                                // url
+          organization,                               // organization
+          maxAmountDisplay,                           // max_amount_display
+          maxAmountNumeric,                           // max_amount_numeric
+          deadlineDisplay,                            // deadline_display
+          deadlineDate,                               // deadline_date
           prefectureName,                             // prefecture_name
           categoryNames,                              // categories
           tagNames,                                   // tags
-          municipalityNames                           // target_municipality
+          municipalityNames,                          // target_municipality
+          grantTarget,                                // grant_target
+          eligibleExpenses,                           // eligible_expenses
+          requiredDocuments,                          // required_documents
+          applicationStatus,                          // application_status
+          adoptionRate,                               // adoption_rate
+          difficultyLevel,                            // difficulty_level
+          areaNotes,                                  // area_notes
+          subsidyRateDetailed                         // subsidy_rate_detailed
         ).run();
         
         console.log(`✅ Synced post ${post.id}: ${title}`);
