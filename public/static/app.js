@@ -118,8 +118,8 @@ function showError(container, message) {
 // プログレスバー表示
 function renderProgressBar(progress) {
   return `
-    <div class="mb-3">
-      <div class="flex justify-between items-center mb-1 px-4">
+    <div style="margin-bottom: 0.75rem; padding: 0 1rem;">
+      <div class="flex justify-between items-center mb-1">
         <span class="text-xs font-bold uppercase tracking-wider" style="color: #525252;">Progress</span>
         <span class="text-xs font-bold" style="color: #000;">${Math.round(progress * 100)}%</span>
       </div>

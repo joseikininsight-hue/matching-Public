@@ -40,7 +40,7 @@ export const renderer = jsxRenderer(({ children }) => {
       <body>
         <div style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
           <header class="app-header" style="flex-shrink: 0;">
-            <div class="px-4 py-3">
+            <div style="padding: 0.75rem 1rem;">
               <div class="flex items-center gap-3">
                 <div class="logo-icon w-10 h-10 flex items-center justify-center text-xl">
                   💡
@@ -61,8 +61,8 @@ export const renderer = jsxRenderer(({ children }) => {
               </div>
             </div>
           </main>
-          <footer style="border-top: 1px solid #e5e5e5; background: #fafafa; flex-shrink: 0;">
-            <div class="px-4 py-2 text-center">
+          <footer style="border-top: 1px solid #e5e5e5; background: #fff; flex-shrink: 0;">
+            <div class="text-center" style="padding: 0.5rem 1rem;">
               <p class="text-xs font-medium tracking-wide" style="color: #525252;">© 2025 AI補助金マッチング</p>
             </div>
           </footer>
