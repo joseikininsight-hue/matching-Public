@@ -191,10 +191,11 @@ body {
 /* 質問カードのスタイル */
 .question-card {
   background: var(--white);
-  border: 2px solid var(--black);
+  border: none;
+  border-top: 2px solid var(--gray-200);
   border-radius: 0;
   padding: 1.5rem;
-  margin-bottom: 0;
+  margin: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -258,12 +259,14 @@ textarea:focus {
 
 /* コンテナスタイル */
 .app-container {
-  background: var(--white);
+  background: transparent;
   border-radius: 0;
   box-shadow: none;
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding: 0;
+  margin: 0;
 }
 
 /* 全画面レイアウト */

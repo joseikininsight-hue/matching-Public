@@ -55,7 +55,7 @@ export const renderer = jsxRenderer(({ children }) => {
             </div>
           </header>
           <main style="flex: 1; overflow-y: auto; width: 100%;">
-            <div class="px-4 py-4 h-full">
+            <div class="h-full">
               <div class="app-container h-full">
                 {children}
               </div>

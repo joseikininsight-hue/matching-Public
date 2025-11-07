@@ -118,8 +118,8 @@ function showError(container, message) {
 // プログレスバー表示
 function renderProgressBar(progress) {
   return `
-    <div class="mb-6">
-      <div class="flex justify-between items-center mb-2">
+    <div class="mb-3">
+      <div class="flex justify-between items-center mb-1 px-4">
         <span class="text-xs font-bold uppercase tracking-wider" style="color: #525252;">Progress</span>
         <span class="text-xs font-bold" style="color: #000;">${Math.round(progress * 100)}%</span>
       </div>
@@ -199,10 +199,10 @@ function renderQuestion(container) {
   }
   
   container.innerHTML = `
-    <div style="height: 100%; display: flex; flex-direction: column;">
+    <div style="height: 100%; display: flex; flex-direction: column; background: var(--white);">
       ${renderProgressBar(progress)}
       
-      <div class="question-card fade-in" style="flex: 1; overflow-y: auto;">
+      <div class="question-card fade-in" style="flex: 1; overflow-y: auto; margin: 0;">
         <div class="flex items-start gap-3 mb-4">
           <div class="icon-box w-10 h-10 flex items-center justify-center text-xl flex-shrink-0">
             ${question.icon || '💡'}
