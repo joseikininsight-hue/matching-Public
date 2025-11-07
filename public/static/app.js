@@ -558,6 +558,60 @@ function renderGrantCard(rec, index) {
   const grant = rec.grant;
   const rankingBadge = index < 3 ? [`#${index + 1}`, `#${index + 1}`, `#${index + 1}`][index] : `#${index + 1}`;
   
+  // データがある項目のみを収集
+  const infoItems = [];
+  
+  if (grant.max_amount_display) {
+    infoItems.push({
+      icon: '💰',
+      label: 'Amount',
+      value: grant.max_amount_display,
+      bold: true
+    });
+  }
+  
+  if (grant.deadline_display) {
+    infoItems.push({
+      icon: '📅',
+      label: 'Deadline',
+      value: grant.deadline_display,
+      bold: true
+    });
+  }
+  
+  if (grant.organization) {
+    infoItems.push({
+      icon: '🏢',
+      label: 'Organization',
+      value: grant.organization,
+      bold: false
+    });
+  }
+  
+  if (grant.prefecture_name) {
+    infoItems.push({
+      icon: '📍',
+      label: 'Location',
+      value: formatLocationDisplay(grant.prefecture_name),
+      bold: false
+    });
+  }
+  
+  // 情報項目のHTML生成
+  const infoBoxesHtml = infoItems.length > 0 ? `
+    <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+      ${infoItems.map(item => `
+        <div class="info-box flex items-start gap-1 p-2">
+          <span class="text-sm flex-shrink-0">${item.icon}</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold uppercase tracking-wide mb-1" style="color: #737373;">${item.label}</div>
+            <div class="${item.bold ? 'font-bold' : 'font-semibold'} text-xs" style="color: #000;">${item.value}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+  
   return `
     <div class="grant-card fade-in p-3" style="animation-delay: ${index * 0.05}s; border: 2px solid ${index === 0 ? '#000' : '#d4d4d4'};">
       <div class="flex justify-between items-start mb-3 gap-2">
@@ -572,67 +626,39 @@ function renderGrantCard(rec, index) {
         </div>
       </div>
       
-      <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
-        <div class="info-box flex items-start gap-1 p-2">
-          <span class="text-sm flex-shrink-0">💰</span>
-          <div class="min-w-0">
-            <div class="text-xs font-bold uppercase tracking-wide mb-1" style="color: #737373;">Amount</div>
-            <div class="font-bold text-xs" style="color: #000;">${grant.max_amount_display || '記載なし'}</div>
-          </div>
+      <!-- AI推薦理由を最上部に移動 -->
+      <div style="background: #f0f8ff; border: 2px solid #000; padding: 1rem; margin-bottom: 0.75rem;">
+        <div class="flex items-center gap-2 mb-2">
+          <span style="font-size: 1.25rem;">🤖</span>
+          <p class="text-sm font-bold uppercase tracking-wide" style="color: #000;">
+            AIがこの助成金を選んだ理由
+          </p>
         </div>
-        
-        <div class="info-box flex items-start gap-1 p-2">
-          <span class="text-sm flex-shrink-0">📅</span>
-          <div class="min-w-0">
-            <div class="text-xs font-bold uppercase tracking-wide mb-1" style="color: #737373;">Deadline</div>
-            <div class="font-bold text-xs" style="color: #000;">${grant.deadline_display || '記載なし'}</div>
-          </div>
-        </div>
-        
-        <div class="info-box flex items-start gap-1 p-2">
-          <span class="text-sm flex-shrink-0">🏢</span>
-          <div class="min-w-0">
-            <div class="text-xs font-bold uppercase tracking-wide mb-1" style="color: #737373;">Organization</div>
-            <div class="font-semibold text-xs" style="color: #000;">${grant.organization || '記載なし'}</div>
-          </div>
-        </div>
-        
-        <div class="info-box flex items-start gap-1 p-2">
-          <span class="text-sm flex-shrink-0">📍</span>
-          <div class="min-w-0">
-            <div class="text-xs font-bold uppercase tracking-wide mb-1" style="color: #737373;">Location</div>
-            <div class="font-semibold text-xs" style="color: #000;">${formatLocationDisplay(grant.prefecture_name)}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div style="background: #fafafa; border: 1px solid #d4d4d4; padding: 0.75rem; margin-bottom: 0.75rem;">
-        <p class="text-xs font-bold mb-1 uppercase tracking-wide" style="color: #525252;">
-          Why
-        </p>
-        <div id="reasoning-${index}" class="text-xs" style="color: #262626;">
+        <div id="reasoning-${index}" class="text-sm" style="color: #262626; line-height: 1.6;">
           <p class="whitespace-pre-wrap">${rec.reasoning_summary || rec.reasoning}</p>
           ${rec.reasoning_summary && rec.reasoning_summary !== rec.reasoning ? `
             <button 
               onclick="toggleReasoning(${index})" 
-              class="mt-1 font-bold text-xs uppercase underline"
+              class="mt-2 font-bold text-xs uppercase underline"
               style="color: #000;"
             >
-              More
+              詳しく見る →
             </button>
           ` : ''}
         </div>
-        <div id="reasoning-full-${index}" class="text-xs whitespace-pre-wrap hidden" style="color: #262626;">
+        <div id="reasoning-full-${index}" class="text-sm whitespace-pre-wrap hidden" style="color: #262626; line-height: 1.6;">
           ${rec.reasoning}
           <button 
             onclick="toggleReasoning(${index})" 
-            class="mt-1 font-bold text-xs uppercase underline"
+            class="mt-2 font-bold text-xs uppercase underline"
             style="color: #000;"
           >
-            Close
+            閉じる
           </button>
         </div>
       </div>
+      
+      ${infoBoxesHtml}
       
       <div class="flex gap-2">
         <a
@@ -641,7 +667,7 @@ function renderGrantCard(rec, index) {
           rel="noopener noreferrer"
           class="flex-1 btn-primary text-center py-2 text-xs"
         >
-          詳細 →
+          詳細を見る →
         </a>
         
         <button
