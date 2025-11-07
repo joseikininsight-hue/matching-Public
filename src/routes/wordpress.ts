@@ -133,22 +133,35 @@ wordpress.get('/sync', async (c) => {
         const excerpt = post.excerpt?.rendered?.replace(/<[^>]*>/g, '') || '';
         const contentHtml = post.content?.rendered || '';
         
+        // カテゴリー名とタグ名を配列から抽出
+        const categoryNames = categories.map((c: any) => c.name).join(', ');
+        const tagNames = tags.map((t: any) => t.name).join(', ');
+        const municipalityNames = municipalities.map((m: any) => m.name).join(', ');
+        
         // D1データベースに挿入または更新
-        // 最小限のカラムのみ使用
         await db.prepare(`
           INSERT OR REPLACE INTO grants (
             wordpress_id,
             title,
             content,
             excerpt,
-            status
-          ) VALUES (?, ?, ?, ?, ?)
+            status,
+            prefecture_name,
+            categories,
+            tags,
+            target_municipality,
+            updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         `).bind(
           post.id,                                    // wordpress_id
           title,                                      // title
           contentHtml,                                // content (HTML)
           excerpt,                                    // excerpt (plain text)
-          post.status || 'publish'                    // status
+          post.status || 'publish',                   // status
+          prefectureName,                             // prefecture_name
+          categoryNames,                              // categories
+          tagNames,                                   // tags
+          municipalityNames                           // target_municipality
         ).run();
         
         console.log(`✅ Synced post ${post.id}: ${title}`);

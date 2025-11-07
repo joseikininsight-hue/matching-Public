@@ -96,24 +96,7 @@ export const baseQuestions: Question[] = [
     required: true,
     weight: 1.0
   },
-  {
-    id: 'Q005',
-    text: '希望する補助金額の範囲を教えてください',
-    type: 'single_select',
-    icon: '💰',
-    options: [
-      { value: 'under_500k', label: '50万円未満' },
-      { value: '500k_1m', label: '50万円〜100万円' },
-      { value: '1m_3m', label: '100万円〜300万円' },
-      { value: '3m_5m', label: '300万円〜500万円' },
-      { value: '5m_10m', label: '500万円〜1,000万円' },
-      { value: '10m_30m', label: '1,000万円〜3,000万円' },
-      { value: 'over_30m', label: '3,000万円以上' },
-      { value: 'any', label: '特にこだわらない' }
-    ],
-    skippable: true,
-    weight: 0.7
-  },
+
   {
     id: 'Q006',
     text: '申請期限の希望はありますか？',
