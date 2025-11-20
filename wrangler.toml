@@ -1,0 +1,14 @@
+name = "matching-public"
+compatibility_date = "2025-10-08"
+pages_build_output_dir = "dist"
+
+# D1 Database bindings
+[[d1_databases]]
+binding = "DB"
+database_name = "grants-db"
+database_id = "local-grants-db"
+preview_database_id = "local-grants-db"
+
+# Environment variables (for development)
+[vars]
+NODE_ENV = "development"
