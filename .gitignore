@@ -19,6 +19,7 @@ dist/
 # Wrangler
 .wrangler/
 wrangler.toml.backup
+wrangler.toml.local
 
 # IDE
 .vscode/
