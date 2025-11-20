@@ -2,13 +2,14 @@ name = "matching-public"
 compatibility_date = "2025-10-08"
 pages_build_output_dir = "dist"
 
-# Note: D1 Database bindings are configured in Cloudflare Pages Dashboard
-# Settings → Functions → D1 database bindings
-# Binding name: DB
-# Database: grants-db
+# D1 Database bindings (production)
+[[d1_databases]]
+binding = "DB"
+database_name = "grants-db"
+database_id = "104090e0-7346-4d57-b3aa-7fe1bf419b4c"
 
-# For local development, use wrangler.toml.local with:
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "grants-db"
-# database_id = "local-grants-db"
+# Environment variables (IMPORTANT: Also set in Cloudflare Pages Dashboard)
+[vars]
+GEMINI_API_KEY = "AIzaSyDjq1BQdjccRj0FZIAFhRPzyLJbu1wScDI"
+
+# For local development, use wrangler.toml.local with local database_id
