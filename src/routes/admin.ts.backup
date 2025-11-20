@@ -1,0 +1,1374 @@
+import { Hono } from 'hono';
+import { Env, ApiResponse, Grant } from '../types';
+import { insert, executeQuery, paginate, fetchOne } from '../utils/db.utils';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// NOTE: CSV/Excel import features are disabled in production
+// Cloudflare Workers doesn't support Node.js modules (papaparse, xlsx)
+// Use WordPress REST API sync instead: POST /api/wordpress/sync
+
+const admin = new Hono<{ Bindings: Env }>();
+
+// 簡易認証ミドルウェア
+admin.use('/*', async (c, next) => {
+  const authHeader = c.req.header('Authorization');
+  const apiKey = authHeader?.replace('Bearer ', '');
+  
+  // 開発環境では簡易チェック（本番では適切な認証を実装）
+  const validApiKey = c.env.JWT_SECRET || 'dev-secret-key';
+  
+  if (apiKey !== validApiKey) {
+    return c.json({ success: false, error: '認証が必要です' }, 401);
+  }
+  
+  await next();
+});
+
+// ========================================
+// ファイルアップロードによるインポート
+// ========================================
+
+// CSVファイルアップロード
+admin.post('/import/grants-csv', async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File;
+    
+    if (!file) {
+      return c.json({ success: false, error: 'ファイルが指定されていません' }, 400);
+    }
+    
+    // ファイル名チェック
+    if (!file.name.endsWith('.csv')) {
+      return c.json({ success: false, error: 'CSVファイルを指定してください（.csv）' }, 400);
+    }
+    
+    // ファイルサイズチェック（最大10MB）
+    if (file.size > 10 * 1024 * 1024) {
+      return c.json({ success: false, error: 'ファイルサイズは10MB以下にしてください' }, 400);
+    }
+    
+    // バイト配列を取得して文字コードを自動検出
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // UTF-8 BOMチェック
+    const hasUTF8BOM = bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF;
+    
+    // TextDecoderで変換（UTF-8を試す）
+    let text: string;
+    try {
+      const decoder = new TextDecoder('utf-8', { fatal: true });
+      text = decoder.decode(bytes);
+      console.log('✅ UTF-8でデコード成功');
+    } catch (e) {
+      // UTF-8で失敗した場合、Shift-JISを試す（日本語環境で一般的）
+      try {
+        const decoder = new TextDecoder('shift-jis');
+        text = decoder.decode(bytes);
+        console.log('✅ Shift-JISでデコード成功');
+      } catch (e2) {
+        // 最後の手段としてUTF-8で無理やり読む
+        const decoder = new TextDecoder('utf-8', { fatal: false });
+        text = decoder.decode(bytes);
+        console.log('⚠️ UTF-8（エラー無視）でデコード');
+      }
+    }
+    
+    // CSV解析
+    const parseResult = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true
+    });
+    
+    if (parseResult.errors.length > 0) {
+      return c.json({ 
+        success: false, 
+        error: 'CSVの解析に失敗しました',
+        details: parseResult.errors 
+      }, 400);
+    }
+    
+    const csvData = parseResult.data as any[];
+    
+    // デバッグ用: 最初の行のカラム名を確認
+    if (csvData.length > 0) {
+      console.log('📊 CSVカラム名:', Object.keys(csvData[0]));
+      console.log('📊 最初のデータ行:', csvData[0]);
+    }
+    
+    // カラム名マッピング（柔軟な日本語カラム名対応）
+    const grants = csvData.map((row: any, index: number) => {
+      // 列番号による取得を優先（文字化け対策）
+      const rowValues = Object.values(row);
+      const keys = Object.keys(row);
+      
+      // 列インデックスでアクセスするヘルパー関数
+      const getColumn = (colIndex: number, ...fallbackKeys: string[]) => {
+        // 1. 列番号で直接アクセス
+        if (rowValues[colIndex] !== undefined && rowValues[colIndex] !== '') {
+          return rowValues[colIndex];
+        }
+        // 2. フォールバックキーで検索
+        for (const key of fallbackKeys) {
+          if (row[key] !== undefined && row[key] !== '') {
+            return row[key];
+          }
+        }
+        return undefined;
+      };
+      
+      // 新しいフォーマットに対応したマッピング
+      // 列順序: ID, Title, Content, Excerpt, Permalink, admin_notes, deadline_date, max_amount_numeric, 助成金カテゴリー, 対象都道府県, 助成金タグ, 対象市町村
+      
+      // IDの取得（列0）
+      const wordpress_id = parseInt(
+        getColumn(0, 'ID', 'wordpress_id', 'id', 'ワードプレスID', '記事ID') || 
+        `${Date.now()}${index}`
+      ) || Math.floor(Math.random() * 1000000);
+      
+      // タイトルの取得（列1）
+      const rawTitle = getColumn(1, 'Title', 'title', 'タイトル', '補助金名', '名称', '事業名');
+      const title = rawTitle && rawTitle.toString().trim() !== '' 
+        ? rawTitle.toString()
+        : `無題の補助金 (ID: ${wordpress_id})`;
+      
+      // パーマリンクの取得（列4）
+      const permalink = getColumn(4, 'Permalink', 'permalink', 'パーマリンク', 'URL', 'url') || '';
+      
+      // deadline_dateの取得（列6）※last_updatedも受け入れる
+      const deadlineDate = getColumn(6, 'deadline_date', 'last_updated', 'Deadline Date', '申請期限', '締切日', '期限', '更新日') || null;
+      
+      // max_amount_numericの取得（列7）
+      const maxAmountNumeric = parseInt(
+        getColumn(7, 'max_amount_numeric', 'Max Amount Numeric', '補助上限額', '最大金額') || '0'
+      ) || null;
+      
+      return {
+        wordpress_id,
+        title,
+        content: getColumn(2, 'Content', 'content', '内容', '詳細', '説明', '概要') || '',
+        excerpt: getColumn(3, 'Excerpt', 'excerpt', '要約', '抜粋') || '',
+        status: 'publish',
+        updated_at: new Date().toISOString(),
+        // Permalinkを official_url として保存
+        official_url: permalink,
+        // admin_notes（列5）
+        admin_notes: getColumn(5, 'admin_notes', 'Admin Notes', '管理メモ', 'メモ') || '',
+        // deadline_date（列6）
+        deadline_date: deadlineDate,
+        deadline_display: deadlineDate || '',
+        // max_amount_numeric（列7）
+        max_amount_numeric: maxAmountNumeric,
+        max_amount_display: maxAmountNumeric ? `最大${(maxAmountNumeric / 10000).toLocaleString()}万円` : '',
+        // 助成金カテゴリー（列8）
+        categories: (() => {
+          const catValue = getColumn(8, '助成金カテゴリー', 'categories', 'カテゴリー', 'カテゴリ');
+          return typeof catValue === 'string' && catValue.trim() !== ''
+            ? catValue.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : [];
+        })(),
+        // 対象都道府県（列9）
+        prefecture_name: getColumn(9, '対象都道府県', 'prefecture_name', '都道府県', '県名') || '',
+        // 助成金タグ（列10）
+        tags: (() => {
+          const tagValue = getColumn(10, '助成金タグ', 'tags', 'タグ');
+          return typeof tagValue === 'string' && tagValue.trim() !== ''
+            ? tagValue.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : [];
+        })(),
+        // 対象市町村（列11）
+        target_municipality: getColumn(11, '対象市町村', 'target_municipality', '市区町村', '市町村') || null,
+        // その他のフィールドはデフォルト値
+        organization: '',
+        organization_type: '',
+        grant_target: '',
+        application_method: '',
+        contact_info: '',
+        regional_limitation: '',
+        application_status: '',
+        target_prefecture_code: null
+      };
+    });
+    
+    // JSONインポート処理を呼び出し
+    const batch_size = parseInt(formData.get('batch_size') as string) || 50;
+    const skip_duplicates = formData.get('skip_duplicates') === 'true';
+    
+    // 既存のインポートロジックを使用
+    const stats = {
+      total: grants.length,
+      inserted: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [] as Array<{ row: number; wordpress_id?: number; title?: string; error: string }>,
+      processing_time_ms: 0
+    };
+    
+    const startTime = Date.now();
+    
+    for (let i = 0; i < grants.length; i++) {
+      const row = grants[i];
+      
+      try {
+        // タイトルが空の場合は警告するが、インポートは続行
+        if (!row.title || row.title.trim() === '') {
+          console.warn(`Row ${i + 1}: タイトルが空です。デフォルト値を使用します。`);
+        }
+        
+        const categories = Array.isArray(row.categories) 
+          ? JSON.stringify(row.categories)
+          : '[]';
+        
+        const tags = Array.isArray(row.tags)
+          ? JSON.stringify(row.tags)
+          : '[]';
+        
+        const existing = await fetchOne(
+          c.env.DB,
+          'SELECT id FROM grants WHERE wordpress_id = ?',
+          [row.wordpress_id]
+        );
+        
+        if (existing) {
+          if (skip_duplicates) {
+            stats.skipped++;
+            continue;
+          }
+          
+          await c.env.DB.prepare(`
+            UPDATE grants SET
+              title = ?, content = ?, excerpt = ?, status = ?, updated_at = ?,
+              max_amount_display = ?, max_amount_numeric = ?,
+              deadline_display = ?, deadline_date = ?,
+              organization = ?, organization_type = ?,
+              grant_target = ?, application_method = ?, contact_info = ?, official_url = ?,
+              target_prefecture_code = ?, prefecture_name = ?, target_municipality = ?,
+              regional_limitation = ?, application_status = ?,
+              categories = ?, tags = ?, admin_notes = ?, updated_system_at = datetime('now')
+            WHERE wordpress_id = ?
+          `).bind(
+            row.title, row.content || null, row.excerpt || null, 'publish', row.updated_at || new Date().toISOString(),
+            row.max_amount_display || null, row.max_amount_numeric || null,
+            row.deadline_display || null, row.deadline_date || null,
+            row.organization || null, row.organization_type || null,
+            row.grant_target || null, row.application_method || null, row.contact_info || null, row.official_url || null,
+            row.target_prefecture_code || null, row.prefecture_name || null, row.target_municipality || null,
+            row.regional_limitation || null, row.application_status || null,
+            categories, tags, row.admin_notes || null, row.wordpress_id
+          ).run();
+          
+          stats.updated++;
+        } else {
+          await c.env.DB.prepare(`
+            INSERT INTO grants (
+              wordpress_id, title, content, excerpt, status,
+              created_at, updated_at,
+              max_amount_display, max_amount_numeric,
+              deadline_display, deadline_date,
+              organization, organization_type,
+              grant_target, application_method, contact_info, official_url,
+              target_prefecture_code, prefecture_name, target_municipality,
+              regional_limitation, application_status,
+              categories, tags, admin_notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            row.wordpress_id, row.title, row.content || null, row.excerpt || null, 'publish',
+            new Date().toISOString(), row.updated_at || new Date().toISOString(),
+            row.max_amount_display || null, row.max_amount_numeric || null,
+            row.deadline_display || null, row.deadline_date || null,
+            row.organization || null, row.organization_type || null,
+            row.grant_target || null, row.application_method || null, row.contact_info || null, row.official_url || null,
+            row.target_prefecture_code || null, row.prefecture_name || null, row.target_municipality || null,
+            row.regional_limitation || null, row.application_status || null,
+            categories, tags, row.admin_notes || null
+          ).run();
+          
+          stats.inserted++;
+        }
+        
+      } catch (error) {
+        stats.failed++;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`Row ${i + 1} import failed:`, errorMessage, 'Data:', {
+          wordpress_id: row.wordpress_id,
+          title: row.title
+        });
+        stats.errors.push({
+          row: i + 1,
+          wordpress_id: row.wordpress_id,
+          title: row.title,
+          error: errorMessage
+        });
+      }
+      
+      if ((i + 1) % 100 === 0) {
+        console.log(`CSV Import progress: ${i + 1}/${grants.length} processed`);
+      }
+    }
+    
+    stats.processing_time_ms = Date.now() - startTime;
+    
+    await insert(c.env.DB, 'system_logs', {
+      log_type: 'csv_import',
+      message: `CSV import completed: ${stats.inserted} inserted, ${stats.updated} updated, ${stats.skipped} skipped, ${stats.failed} failed`,
+      details: JSON.stringify({ ...stats, filename: file.name })
+    });
+    
+    return c.json({
+      success: true,
+      data: {
+        stats,
+        summary: {
+          filename: file.name,
+          file_size: `${(file.size / 1024).toFixed(2)} KB`,
+          success_rate: ((stats.inserted + stats.updated) / stats.total * 100).toFixed(2) + '%',
+          processing_time: (stats.processing_time_ms / 1000).toFixed(2) + 's',
+          avg_time_per_record: (stats.processing_time_ms / stats.total).toFixed(2) + 'ms'
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('CSV import error:', error);
+    return c.json({ 
+      success: false, 
+      error: 'CSVインポートに失敗しました',
+      details: error instanceof Error ? error.message : String(error)
+    }, 500);
+  }
+});
+
+// Excelファイルアップロード (.xlsx, .xls)
+admin.post('/import/grants-excel', async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File;
+    
+    if (!file) {
+      return c.json({ success: false, error: 'ファイルが指定されていません' }, 400);
+    }
+    
+    // ファイル名チェック
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      return c.json({ success: false, error: 'Excelファイルを指定してください（.xlsx または .xls）' }, 400);
+    }
+    
+    // ファイルサイズチェック（最大10MB）
+    if (file.size > 10 * 1024 * 1024) {
+      return c.json({ success: false, error: 'ファイルサイズは10MB以下にしてください' }, 400);
+    }
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+    
+    // Excel解析
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    
+    // 最初のシートを取得
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    
+    // JSON形式に変換
+    const excelData = XLSX.utils.sheet_to_json(worksheet);
+    
+    if (!excelData || excelData.length === 0) {
+      return c.json({ 
+        success: false, 
+        error: 'Excelファイルにデータが含まれていません' 
+      }, 400);
+    }
+    
+    // 新しいフォーマットに対応したマッピング（Excel版）
+    // 列順序: ID, Title, Content, Excerpt, Permalink, admin_notes, deadline_date, max_amount_numeric, 助成金カテゴリー, 対象都道府県, 助成金タグ, 対象市町村
+    const grants = excelData.map((row: any, index: number) => {
+      // IDの取得
+      const wordpress_id = parseInt(
+        row['ID'] || row['wordpress_id'] || row['id'] || 
+        row['A'] || // A列がIDの場合
+        row['ワードプレスID'] || row['記事ID'] || 
+        `${Date.now()}${index}` // フォールバック: タイムスタンプ + インデックス
+      ) || Math.floor(Math.random() * 1000000);
+      
+      // タイトルの取得
+      const title = row['Title'] || row['title'] || row['タイトル'] || row['補助金名'] || 
+                    row['B'] || // B列がタイトルの場合
+                    row['名称'] || row['事業名'] || 
+                    `無題の補助金 (ID: ${wordpress_id})`;
+      
+      // パーマリンクの取得
+      const permalink = row['Permalink'] || row['permalink'] || row['パーマリンク'] || row['URL'] || row['url'] || '';
+      
+      // deadline_dateの取得（last_updatedも受け入れる）
+      const deadlineDate = row['deadline_date'] || row['last_updated'] || row['Deadline Date'] || row['申請期限'] || row['締切日'] || row['期限'] || row['更新日'] || null;
+      
+      // max_amount_numericの取得
+      const maxAmountNumeric = parseInt(
+        row['max_amount_numeric'] || row['Max Amount Numeric'] || row['補助上限額'] || row['最大金額'] || '0'
+      ) || null;
+      
+      return {
+        wordpress_id,
+        title,
+        content: row['Content'] || row['content'] || row['内容'] || row['詳細'] || row['説明'] || row['概要'] || '',
+        excerpt: row['Excerpt'] || row['excerpt'] || row['要約'] || row['抜粋'] || '',
+        status: 'publish',
+        updated_at: new Date().toISOString(),
+        // Permalinkを official_url として保存
+        official_url: permalink,
+        // admin_notes
+        admin_notes: row['admin_notes'] || row['Admin Notes'] || row['管理メモ'] || row['メモ'] || '',
+        // deadline_date
+        deadline_date: deadlineDate,
+        deadline_display: deadlineDate || '',
+        // max_amount_numeric
+        max_amount_numeric: maxAmountNumeric,
+        max_amount_display: maxAmountNumeric ? `最大${(maxAmountNumeric / 10000).toLocaleString()}万円` : '',
+        // 助成金カテゴリー
+        categories: typeof row['助成金カテゴリー'] === 'string' 
+          ? row['助成金カテゴリー'].split(',').map((s: string) => s.trim()).filter(Boolean)
+          : typeof row['categories'] === 'string'
+          ? row['categories'].split(',').map((s: string) => s.trim()).filter(Boolean)
+          : typeof row['カテゴリー'] === 'string'
+          ? row['カテゴリー'].split(',').map((s: string) => s.trim()).filter(Boolean)
+          : [],
+        // 対象都道府県
+        prefecture_name: row['対象都道府県'] || row['prefecture_name'] || row['都道府県'] || row['県名'] || '',
+        // 助成金タグ
+        tags: typeof row['助成金タグ'] === 'string'
+          ? row['助成金タグ'].split(',').map((s: string) => s.trim()).filter(Boolean)
+          : typeof row['tags'] === 'string'
+          ? row['tags'].split(',').map((s: string) => s.trim()).filter(Boolean)
+          : typeof row['タグ'] === 'string'
+          ? row['タグ'].split(',').map((s: string) => s.trim()).filter(Boolean)
+          : [],
+        // 対象市町村
+        target_municipality: row['対象市町村'] || row['target_municipality'] || row['市区町村'] || row['市町村'] || null,
+        // その他のフィールドはデフォルト値
+        organization: '',
+        organization_type: '',
+        grant_target: '',
+        application_method: '',
+        contact_info: '',
+        regional_limitation: '',
+        application_status: '',
+        target_prefecture_code: null
+      };
+    });
+    
+    const batch_size = parseInt(formData.get('batch_size') as string) || 50;
+    const skip_duplicates = formData.get('skip_duplicates') === 'true';
+    
+    const stats = {
+      total: grants.length,
+      inserted: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [] as Array<{ row: number; wordpress_id?: number; title?: string; error: string }>,
+      processing_time_ms: 0
+    };
+    
+    const startTime = Date.now();
+    
+    for (let i = 0; i < grants.length; i++) {
+      const row = grants[i];
+      
+      try {
+        // タイトルが空の場合は警告するが、インポートは続行
+        if (!row.title || row.title.trim() === '') {
+          console.warn(`Row ${i + 1}: タイトルが空です。デフォルト値を使用します。`);
+        }
+        
+        const categories = Array.isArray(row.categories) 
+          ? JSON.stringify(row.categories)
+          : '[]';
+        
+        const tags = Array.isArray(row.tags)
+          ? JSON.stringify(row.tags)
+          : '[]';
+        
+        const existing = await fetchOne(
+          c.env.DB,
+          'SELECT id FROM grants WHERE wordpress_id = ?',
+          [row.wordpress_id]
+        );
+        
+        if (existing) {
+          if (skip_duplicates) {
+            stats.skipped++;
+            continue;
+          }
+          
+          await c.env.DB.prepare(`
+            UPDATE grants SET
+              title = ?, content = ?, excerpt = ?, status = ?, updated_at = ?,
+              max_amount_display = ?, max_amount_numeric = ?,
+              deadline_display = ?, deadline_date = ?,
+              organization = ?, organization_type = ?,
+              grant_target = ?, application_method = ?, contact_info = ?, official_url = ?,
+              target_prefecture_code = ?, prefecture_name = ?, target_municipality = ?,
+              regional_limitation = ?, application_status = ?,
+              categories = ?, tags = ?, admin_notes = ?, updated_system_at = datetime('now')
+            WHERE wordpress_id = ?
+          `).bind(
+            row.title, row.content || null, row.excerpt || null, 'publish', row.updated_at || new Date().toISOString(),
+            row.max_amount_display || null, row.max_amount_numeric || null,
+            row.deadline_display || null, row.deadline_date || null,
+            row.organization || null, row.organization_type || null,
+            row.grant_target || null, row.application_method || null, row.contact_info || null, row.official_url || null,
+            row.target_prefecture_code || null, row.prefecture_name || null, row.target_municipality || null,
+            row.regional_limitation || null, row.application_status || null,
+            categories, tags, row.admin_notes || null, row.wordpress_id
+          ).run();
+          
+          stats.updated++;
+        } else {
+          await c.env.DB.prepare(`
+            INSERT INTO grants (
+              wordpress_id, title, content, excerpt, status,
+              created_at, updated_at,
+              max_amount_display, max_amount_numeric,
+              deadline_display, deadline_date,
+              organization, organization_type,
+              grant_target, application_method, contact_info, official_url,
+              target_prefecture_code, prefecture_name, target_municipality,
+              regional_limitation, application_status,
+              categories, tags, admin_notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            row.wordpress_id, row.title, row.content || null, row.excerpt || null, 'publish',
+            new Date().toISOString(), row.updated_at || new Date().toISOString(),
+            row.max_amount_display || null, row.max_amount_numeric || null,
+            row.deadline_display || null, row.deadline_date || null,
+            row.organization || null, row.organization_type || null,
+            row.grant_target || null, row.application_method || null, row.contact_info || null, row.official_url || null,
+            row.target_prefecture_code || null, row.prefecture_name || null, row.target_municipality || null,
+            row.regional_limitation || null, row.application_status || null,
+            categories, tags, row.admin_notes || null
+          ).run();
+          
+          stats.inserted++;
+        }
+        
+      } catch (error) {
+        stats.failed++;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`Row ${i + 1} import failed:`, errorMessage, 'Data:', {
+          wordpress_id: row.wordpress_id,
+          title: row.title
+        });
+        stats.errors.push({
+          row: i + 1,
+          wordpress_id: row.wordpress_id,
+          title: row.title,
+          error: errorMessage
+        });
+      }
+      
+      if ((i + 1) % 100 === 0) {
+        console.log(`Excel Import progress: ${i + 1}/${grants.length} processed`);
+      }
+    }
+    
+    stats.processing_time_ms = Date.now() - startTime;
+    
+    await insert(c.env.DB, 'system_logs', {
+      log_type: 'excel_import',
+      message: `Excel import completed: ${stats.inserted} inserted, ${stats.updated} updated, ${stats.skipped} skipped, ${stats.failed} failed`,
+      details: JSON.stringify({ ...stats, filename: file.name, sheet: sheetName })
+    });
+    
+    return c.json({
+      success: true,
+      data: {
+        stats,
+        summary: {
+          filename: file.name,
+          sheet_name: sheetName,
+          file_size: `${(file.size / 1024).toFixed(2)} KB`,
+          success_rate: ((stats.inserted + stats.updated) / stats.total * 100).toFixed(2) + '%',
+          processing_time: (stats.processing_time_ms / 1000).toFixed(2) + 's',
+          avg_time_per_record: (stats.processing_time_ms / stats.total).toFixed(2) + 'ms'
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('Excel import error:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Excelインポートに失敗しました',
+      details: error instanceof Error ? error.message : String(error)
+    }, 500);
+  }
+});
+
+// CSVインポート（JSON形式で受信） - 大量データ対応版
+admin.post('/import/grants', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { grants, batch_size = 50, skip_duplicates = false } = body as { 
+      grants: any[]; 
+      batch_size?: number;
+      skip_duplicates?: boolean;
+    };
+    
+    if (!Array.isArray(grants) || grants.length === 0) {
+      return c.json({ success: false, error: '有効なデータがありません' }, 400);
+    }
+    
+    const stats = {
+      total: grants.length,
+      inserted: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [] as Array<{ row: number; wordpress_id?: number; title?: string; error: string }>,
+      processing_time_ms: 0
+    };
+    
+    const startTime = Date.now();
+    
+    // バッチ処理（デフォルト50件ずつ、最大100件）
+    const effectiveBatchSize = Math.min(batch_size, 100);
+    
+    for (let i = 0; i < grants.length; i++) {
+      const row = grants[i];
+      
+      try {
+        // データ検証
+        if (!row.wordpress_id || !row.title) {
+          throw new Error('必須フィールドが不足しています');
+        }
+        
+        // カテゴリ・タグの配列化
+        const categories = Array.isArray(row.categories) 
+          ? JSON.stringify(row.categories)
+          : typeof row.categories === 'string'
+          ? JSON.stringify(row.categories.split(',').map((s: string) => s.trim()))
+          : '[]';
+        
+        const tags = Array.isArray(row.tags)
+          ? JSON.stringify(row.tags)
+          : typeof row.tags === 'string'
+          ? JSON.stringify(row.tags.split(',').map((s: string) => s.trim()))
+          : '[]';
+        
+        // 既存チェック
+        const existing = await fetchOne(
+          c.env.DB,
+          'SELECT id FROM grants WHERE wordpress_id = ?',
+          [row.wordpress_id]
+        );
+        
+        if (existing) {
+          // skip_duplicates = true の場合はスキップ
+          if (skip_duplicates) {
+            stats.skipped++;
+            continue;
+          }
+          
+          // 更新
+          await c.env.DB.prepare(`
+            UPDATE grants SET
+              title = ?,
+              content = ?,
+              excerpt = ?,
+              status = ?,
+              updated_at = ?,
+              max_amount_display = ?,
+              max_amount_numeric = ?,
+              deadline_display = ?,
+              deadline_date = ?,
+              organization = ?,
+              organization_type = ?,
+              grant_target = ?,
+              application_method = ?,
+              contact_info = ?,
+              official_url = ?,
+              target_prefecture_code = ?,
+              prefecture_name = ?,
+              target_municipality = ?,
+              regional_limitation = ?,
+              application_status = ?,
+              categories = ?,
+              tags = ?,
+              updated_system_at = datetime('now')
+            WHERE wordpress_id = ?
+          `).bind(
+            row.title,
+            row.content || null,
+            row.excerpt || null,
+            row.status || 'publish',
+            row.updated_at || new Date().toISOString(),
+            row.max_amount_display || null,
+            row.max_amount_numeric || null,
+            row.deadline_display || null,
+            row.deadline_date || null,
+            row.organization || null,
+            row.organization_type || null,
+            row.grant_target || null,
+            row.application_method || null,
+            row.contact_info || null,
+            row.official_url || null,
+            row.target_prefecture_code || null,
+            row.prefecture_name || null,
+            row.target_municipality || null,
+            row.regional_limitation || null,
+            row.application_status || null,
+            categories,
+            tags,
+            row.wordpress_id
+          ).run();
+          
+          stats.updated++;
+        } else {
+          // 挿入
+          await c.env.DB.prepare(`
+            INSERT INTO grants (
+              wordpress_id, title, content, excerpt, status,
+              created_at, updated_at,
+              max_amount_display, max_amount_numeric,
+              deadline_display, deadline_date,
+              organization, organization_type,
+              grant_target, application_method, contact_info, official_url,
+              target_prefecture_code, prefecture_name, target_municipality,
+              regional_limitation, application_status,
+              categories, tags, admin_notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            row.wordpress_id,
+            row.title,
+            row.content || null,
+            row.excerpt || null,
+            row.status || 'publish',
+            row.created_at || new Date().toISOString(),
+            row.updated_at || new Date().toISOString(),
+            row.max_amount_display || null,
+            row.max_amount_numeric || null,
+            row.deadline_display || null,
+            row.deadline_date || null,
+            row.organization || null,
+            row.organization_type || null,
+            row.grant_target || null,
+            row.application_method || null,
+            row.contact_info || null,
+            row.official_url || null,
+            row.target_prefecture_code || null,
+            row.prefecture_name || null,
+            row.target_municipality || null,
+            row.regional_limitation || null,
+            row.application_status || null,
+            categories,
+            tags
+          ).run();
+          
+          stats.inserted++;
+        }
+        
+      } catch (error) {
+        stats.failed++;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`Row ${i + 1} import failed:`, errorMessage, 'Data:', {
+          wordpress_id: row.wordpress_id,
+          title: row.title
+        });
+        stats.errors.push({
+          row: i + 1,
+          wordpress_id: row.wordpress_id,
+          title: row.title,
+          error: errorMessage
+        });
+      }
+      
+      // 進捗ログ（100件ごと）
+      if ((i + 1) % 100 === 0) {
+        console.log(`Import progress: ${i + 1}/${grants.length} processed`);
+      }
+    }
+    
+    stats.processing_time_ms = Date.now() - startTime;
+    
+    // ログ保存
+    await insert(c.env.DB, 'system_logs', {
+      log_type: 'import',
+      message: `Import completed: ${stats.inserted} inserted, ${stats.updated} updated, ${stats.skipped} skipped, ${stats.failed} failed`,
+      details: JSON.stringify(stats)
+    });
+    
+    const response: ApiResponse = {
+      success: true,
+      data: { 
+        stats,
+        summary: {
+          success_rate: ((stats.inserted + stats.updated) / stats.total * 100).toFixed(2) + '%',
+          processing_time: (stats.processing_time_ms / 1000).toFixed(2) + 's',
+          avg_time_per_record: (stats.processing_time_ms / stats.total).toFixed(2) + 'ms'
+        }
+      }
+    };
+    
+    return c.json(response);
+    
+  } catch (error) {
+    console.error('Import error:', error);
+    return c.json({ 
+      success: false, 
+      error: 'インポートに失敗しました',
+      details: error instanceof Error ? error.message : String(error)
+    }, 500);
+  }
+});
+
+// 補助金一覧取得
+admin.get('/grants', async (c) => {
+  try {
+    const page = parseInt(c.req.query('page') || '1');
+    const limit = parseInt(c.req.query('limit') || '20');
+    const status = c.req.query('status') || 'publish';
+    const keyword = c.req.query('keyword') || '';
+    const prefecture = c.req.query('prefecture') || '';
+    const wordpress_id = c.req.query('wordpress_id') || '';
+    
+    // 条件構築
+    const conditions: string[] = ['status = ?'];
+    const params: any[] = [status];
+    
+    if (keyword) {
+      conditions.push('(title LIKE ? OR organization LIKE ? OR content LIKE ?)');
+      const searchTerm = `%${keyword}%`;
+      params.push(searchTerm, searchTerm, searchTerm);
+    }
+    
+    if (prefecture) {
+      conditions.push('prefecture_name = ?');
+      params.push(prefecture);
+    }
+    
+    if (wordpress_id) {
+      conditions.push('wordpress_id = ?');
+      params.push(parseInt(wordpress_id));
+    }
+    
+    const whereClause = conditions.join(' AND ');
+    
+    const result = await paginate<Grant>(
+      c.env.DB,
+      `SELECT * FROM grants WHERE ${whereClause} ORDER BY created_system_at DESC`,
+      `SELECT COUNT(*) as count FROM grants WHERE ${whereClause}`,
+      params,
+      { page, limit }
+    );
+    
+    // フロントエンドとの整合性: grantsフィールドでデータを返す
+    return c.json({ 
+      success: true, 
+      data: {
+        grants: result.data,  // result.dataは配列
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages
+      }
+    });
+    
+  } catch (error) {
+    console.error('Grants fetch error:', error);
+    return c.json({ success: false, error: '補助金一覧の取得に失敗しました' }, 500);
+  }
+});
+
+// 統計情報取得
+admin.get('/stats', async (c) => {
+  try {
+    const days = parseInt(c.req.query('days') || '30');
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const sinceStr = since.toISOString();
+    
+    // セッション統計
+    const sessionStats = await fetchOne(
+      c.env.DB,
+      `SELECT 
+        COUNT(*) as total_sessions,
+        SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed_sessions,
+        AVG(total_questions_answered) as avg_questions_answered
+      FROM user_sessions
+      WHERE started_at >= ?`,
+      [sinceStr]
+    );
+    
+    // 補助金統計
+    const grantStats = await fetchOne(
+      c.env.DB,
+      `SELECT 
+        COUNT(*) as total_grants,
+        SUM(CASE WHEN status = 'publish' THEN 1 ELSE 0 END) as published_grants,
+        SUM(CASE WHEN deadline_date >= date('now') OR deadline_date IS NULL THEN 1 ELSE 0 END) as active_grants
+      FROM grants`
+    );
+    
+    // マッチング統計
+    const matchingStats = await fetchOne(
+      c.env.DB,
+      `SELECT 
+        COUNT(*) as total_matches,
+        AVG(user_feedback) as avg_feedback_score,
+        SUM(CASE WHEN user_feedback >= 4 THEN 1 ELSE 0 END) as positive_feedback_count
+      FROM matching_results
+      WHERE created_at >= ?`,
+      [sinceStr]
+    );
+    
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        period: { days, since: sinceStr },
+        sessions: sessionStats,
+        grants: grantStats,
+        matching: matchingStats
+      }
+    };
+    
+    return c.json(response);
+    
+  } catch (error) {
+    console.error('Stats error:', error);
+    return c.json({ success: false, error: '統計の取得に失敗しました' }, 500);
+  }
+});
+
+// 最近のセッション一覧
+admin.get('/sessions', async (c) => {
+  try {
+    const limit = parseInt(c.req.query('limit') || '50');
+    
+    const sessions = await executeQuery(
+      c.env.DB,
+      `SELECT 
+        us.*,
+        (SELECT COUNT(*) FROM conversation_history WHERE session_id = us.session_id) as answer_count,
+        (SELECT COUNT(*) FROM matching_results WHERE session_id = us.session_id) as match_count
+      FROM user_sessions us
+      ORDER BY us.started_at DESC
+      LIMIT ?`,
+      [limit]
+    );
+    
+    return c.json({ success: true, data: { sessions } });
+    
+  } catch (error) {
+    console.error('Sessions fetch error:', error);
+    return c.json({ success: false, error: 'セッション一覧の取得に失敗しました' }, 500);
+  }
+});
+
+// システムログ取得
+admin.get('/logs', async (c) => {
+  try {
+    const limit = parseInt(c.req.query('limit') || '100');
+    const logType = c.req.query('type');
+    
+    let query = 'SELECT * FROM system_logs';
+    const params: any[] = [];
+    
+    if (logType) {
+      query += ' WHERE log_type = ?';
+      params.push(logType);
+    }
+    
+    query += ' ORDER BY created_at DESC LIMIT ?';
+    params.push(limit);
+    
+    const logs = await executeQuery(c.env.DB, query, params);
+    
+    return c.json({ success: true, data: { logs } });
+    
+  } catch (error) {
+    console.error('Logs fetch error:', error);
+    return c.json({ success: false, error: 'ログの取得に失敗しました' }, 500);
+  }
+});
+
+// ========================================
+// データ削除機能
+// ========================================
+
+// 補助金を個別削除（wordpress_id指定）
+admin.delete('/grants/:wordpress_id', async (c) => {
+  try {
+    const wordpress_id = parseInt(c.req.param('wordpress_id'));
+    
+    if (!wordpress_id) {
+      return c.json({ success: false, error: '有効なwordpress_idを指定してください' }, 400);
+    }
+    
+    // 存在チェック
+    const existing = await fetchOne(
+      c.env.DB,
+      'SELECT id, title FROM grants WHERE wordpress_id = ?',
+      [wordpress_id]
+    );
+    
+    if (!existing) {
+      return c.json({ success: false, error: '指定された補助金が見つかりません' }, 404);
+    }
+    
+    // 関連データも削除（外部キー制約対応）
+    // 1. matching_resultsから削除
+    await c.env.DB.prepare('DELETE FROM matching_results WHERE grant_id IN (SELECT id FROM grants WHERE wordpress_id = ?)')
+      .bind(wordpress_id)
+      .run();
+    
+    // 2. grantsから削除
+    await c.env.DB.prepare('DELETE FROM grants WHERE wordpress_id = ?')
+      .bind(wordpress_id)
+      .run();
+    
+    // ログ保存
+    await insert(c.env.DB, 'system_logs', {
+      log_type: 'delete',
+      message: `Grant deleted: ${existing.title}`,
+      details: JSON.stringify({ wordpress_id, title: existing.title })
+    });
+    
+    return c.json({ 
+      success: true, 
+      data: { 
+        deleted_grant: existing,
+        message: '補助金を削除しました' 
+      } 
+    });
+    
+  } catch (error) {
+    console.error('Delete error:', error);
+    return c.json({ 
+      success: false, 
+      error: '削除に失敗しました',
+      details: error instanceof Error ? error.message : String(error)
+    }, 500);
+  }
+});
+
+// 補助金を一括削除（条件指定）
+admin.post('/grants/bulk-delete', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { wordpress_ids, category, prefecture_code, status, all } = body;
+    
+    let query = 'DELETE FROM grants WHERE ';
+    const conditions: string[] = [];
+    const params: any[] = [];
+    
+    // 全削除フラグ（危険なので確認必須）
+    if (all === true) {
+      const confirmToken = body.confirm_token;
+      if (confirmToken !== 'DELETE_ALL_GRANTS_CONFIRMED') {
+        return c.json({ 
+          success: false, 
+          error: '全削除には確認トークンが必要です。confirm_token: "DELETE_ALL_GRANTS_CONFIRMED" を指定してください' 
+        }, 400);
+      }
+      
+      const count = await fetchOne(c.env.DB, 'SELECT COUNT(*) as count FROM grants');
+      
+      // 外部キー制約対応: 関連データを先に削除
+      await c.env.DB.prepare('DELETE FROM matching_results').run();
+      await c.env.DB.prepare('DELETE FROM grants').run();
+      
+      await insert(c.env.DB, 'system_logs', {
+        log_type: 'bulk_delete',
+        message: `All grants deleted (${count.count} records)`,
+        details: JSON.stringify({ count: count.count })
+      });
+      
+      return c.json({ 
+        success: true, 
+        data: { 
+          deleted_count: count.count,
+          message: '全ての補助金を削除しました' 
+        } 
+      });
+    }
+    
+    // wordpress_ids配列による削除
+    if (wordpress_ids && Array.isArray(wordpress_ids) && wordpress_ids.length > 0) {
+      const placeholders = wordpress_ids.map(() => '?').join(',');
+      conditions.push(`wordpress_id IN (${placeholders})`);
+      params.push(...wordpress_ids);
+    }
+    
+    // カテゴリーによる削除
+    if (category) {
+      conditions.push(`categories LIKE ?`);
+      params.push(`%"${category}"%`);
+    }
+    
+    // 都道府県による削除
+    if (prefecture_code) {
+      conditions.push(`target_prefecture_code = ?`);
+      params.push(prefecture_code);
+    }
+    
+    // ステータスによる削除
+    if (status) {
+      conditions.push(`status = ?`);
+      params.push(status);
+    }
+    
+    if (conditions.length === 0) {
+      return c.json({ 
+        success: false, 
+        error: '削除条件を指定してください（wordpress_ids, category, prefecture_code, status, または all）' 
+      }, 400);
+    }
+    
+    query += conditions.join(' AND ');
+    
+    // 削除前に件数確認
+    const countQuery = 'SELECT COUNT(*) as count FROM grants WHERE ' + conditions.join(' AND ');
+    const countResult = await fetchOne(c.env.DB, countQuery, params);
+    
+    if (countResult.count === 0) {
+      return c.json({ 
+        success: false, 
+        error: '指定された条件に一致する補助金が見つかりません' 
+      }, 404);
+    }
+    
+    // 関連データも削除（外部キー制約対応）
+    // 1. matching_resultsから削除
+    const grantIdsQuery = 'SELECT id FROM grants WHERE ' + conditions.join(' AND ');
+    const grantIds = await executeQuery(c.env.DB, grantIdsQuery, params);
+    
+    if (grantIds.length > 0) {
+      const ids = grantIds.map((g: any) => g.id);
+      const placeholders = ids.map(() => '?').join(',');
+      await c.env.DB.prepare(`DELETE FROM matching_results WHERE grant_id IN (${placeholders})`)
+        .bind(...ids)
+        .run();
+    }
+    
+    // 2. grantsから削除
+    await c.env.DB.prepare(query).bind(...params).run();
+    
+    // ログ保存
+    await insert(c.env.DB, 'system_logs', {
+      log_type: 'bulk_delete',
+      message: `Bulk delete: ${countResult.count} grants`,
+      details: JSON.stringify({ count: countResult.count, conditions: body })
+    });
+    
+    return c.json({ 
+      success: true, 
+      data: { 
+        deleted_count: countResult.count,
+        message: `${countResult.count}件の補助金を削除しました` 
+      } 
+    });
+    
+  } catch (error) {
+    console.error('Bulk delete error:', error);
+    return c.json({ 
+      success: false, 
+      error: '一括削除に失敗しました',
+      details: error instanceof Error ? error.message : String(error)
+    }, 500);
+  }
+});
+
+// ========================================
+// Gemini API Key 管理
+// ========================================
+
+// 現在のAPI Key設定を確認（マスク表示）
+admin.get('/config/gemini', async (c) => {
+  try {
+    const apiKey = c.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      return c.json({ 
+        success: true, 
+        data: { 
+          configured: false,
+          message: 'Gemini API Keyが設定されていません' 
+        } 
+      });
+    }
+    
+    // APIキーの最初と最後の4文字だけ表示
+    const maskedKey = apiKey.length > 8 
+      ? `${apiKey.substring(0, 4)}${'*'.repeat(apiKey.length - 8)}${apiKey.substring(apiKey.length - 4)}`
+      : '****';
+    
+    return c.json({ 
+      success: true, 
+      data: { 
+        configured: true,
+        masked_key: maskedKey,
+        key_length: apiKey.length,
+        message: 'Gemini API Keyが設定されています' 
+      } 
+    });
+    
+  } catch (error) {
+    console.error('Config fetch error:', error);
+    return c.json({ success: false, error: '設定の取得に失敗しました' }, 500);
+  }
+});
+
+// Gemini API Keyをテスト
+admin.post('/config/gemini/test', async (c) => {
+  try {
+    const body = await c.req.json();
+    const testKey = body.api_key || c.env.GEMINI_API_KEY;
+    
+    if (!testKey) {
+      return c.json({ 
+        success: false, 
+        error: 'API Keyが指定されていません' 
+      }, 400);
+    }
+    
+    try {
+      const genAI = new GoogleGenerativeAI(testKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      
+      // 簡単なテストプロンプト
+      const result = await model.generateContent('こんにちは。これはAPIキーのテストです。「OK」とだけ返答してください。');
+      const response = await result.response;
+      const text = response.text();
+      
+      return c.json({ 
+        success: true, 
+        data: { 
+          valid: true,
+          test_response: text.substring(0, 100), // 最初の100文字だけ
+          message: 'API Keyは有効です' 
+        } 
+      });
+      
+    } catch (apiError) {
+      return c.json({ 
+        success: false, 
+        data: {
+          valid: false,
+          message: 'API Keyが無効です',
+          error: apiError instanceof Error ? apiError.message : String(apiError)
+        }
+      }, 400);
+    }
+    
+  } catch (error) {
+    console.error('API test error:', error);
+    return c.json({ 
+      success: false, 
+      error: 'APIテストに失敗しました',
+      details: error instanceof Error ? error.message : String(error)
+    }, 500);
+  }
+});
+
+// .dev.vars ファイル更新の説明エンドポイント
+admin.get('/config/guide', async (c) => {
+  return c.json({
+    success: true,
+    data: {
+      message: 'Gemini API Keyの設定方法',
+      development: {
+        title: '開発環境（ローカル）',
+        steps: [
+          {
+            step: 1,
+            title: '.dev.vars ファイルを編集',
+            description: 'プロジェクトルートの .dev.vars ファイルを開き、以下の形式で設定してください',
+            example: 'GEMINI_API_KEY=AIzaSy...(your-actual-api-key)'
+          },
+          {
+            step: 2,
+            title: 'サーバーを再起動',
+            description: 'PM2を再起動して環境変数を読み込みます',
+            command: 'pm2 restart webapp'
+          },
+          {
+            step: 3,
+            title: 'APIキーをテスト',
+            description: '以下のエンドポイントで設定を確認してください',
+            endpoints: [
+              'GET /api/admin/config/gemini - 設定確認',
+              'POST /api/admin/config/gemini/test - APIキーテスト'
+            ]
+          }
+        ]
+      },
+      production: {
+        title: '本番環境（Cloudflare Pages）',
+        steps: [
+          {
+            step: 1,
+            title: 'Cloudflare Secretsを使用',
+            description: 'wranglerコマンドでシークレットを設定します',
+            command: 'wrangler secret put GEMINI_API_KEY --project-name webapp'
+          },
+          {
+            step: 2,
+            title: '再デプロイ',
+            description: 'アプリケーションを再デプロイします',
+            command: 'npm run deploy:prod'
+          }
+        ]
+      },
+      api_key_acquisition: {
+        title: 'Gemini API Keyの取得方法',
+        url: 'https://aistudio.google.com/app/apikey',
+        steps: [
+          '1. Google AI Studioにアクセス',
+          '2. Googleアカウントでログイン',
+          '3. "Get API Key"をクリック',
+          '4. 新しいAPIキーを作成',
+          '5. 生成されたキーをコピー'
+        ]
+      }
+    }
+  });
+});
+
+// ========================================
+// 環境変数管理（開発環境用）
+// ========================================
+
+// 現在の環境変数一覧を取得（マスク表示）
+admin.get('/config/env', async (c) => {
+  try {
+    const env = c.env;
+    
+    const envVars = {
+      GEMINI_API_KEY: env.GEMINI_API_KEY ? 'configured' : 'not_configured',
+      GEMINI_API_KEY_MASKED: env.GEMINI_API_KEY 
+        ? `${env.GEMINI_API_KEY.substring(0, 8)}...${env.GEMINI_API_KEY.substring(env.GEMINI_API_KEY.length - 4)}`
+        : null,
+      JWT_SECRET: env.JWT_SECRET ? 'configured' : 'not_configured',
+      DB: env.DB ? 'configured' : 'not_configured'
+    };
+    
+    return c.json({
+      success: true,
+      data: {
+        environment: 'development',
+        variables: envVars,
+        message: '環境変数の設定状況です。実際の値は .dev.vars ファイルで管理してください。'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Env fetch error:', error);
+    return c.json({ 
+      success: false, 
+      error: '環境変数の取得に失敗しました' 
+    }, 500);
+  }
+});
+
+export default admin;

@@ -5,10 +5,20 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [
-    build(),
+    build({
+      minify: true,
+      emptyOutDir: true
+    }),
     devServer({
       adapter,
       entry: 'src/index.tsx'
     })
-  ]
+  ],
+  ssr: {
+    target: 'webworker',
+    noExternal: true
+  },
+  optimizeDeps: {
+    include: ['@google/generative-ai', 'hono']
+  }
 })

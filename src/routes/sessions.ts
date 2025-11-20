@@ -1,15 +1,19 @@
 import { Hono } from 'hono';
-import { v4 as uuidv4 } from 'uuid';
 import { Env, ApiResponse, UserSession } from '../types';
 import { insert, fetchOne, update } from '../utils/db.utils';
 import { baseQuestions } from '../config/questions';
 
 const sessions = new Hono<{ Bindings: Env }>();
 
+// UUID v4 generator using Web Crypto API (Cloudflare Workers compatible)
+function generateUUID(): string {
+  return crypto.randomUUID();
+}
+
 // 新規セッション作成
 sessions.post('/', async (c) => {
   try {
-    const sessionId = uuidv4();
+    const sessionId = generateUUID();
     const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
     const userAgent = c.req.header('user-agent') || 'unknown';
     
